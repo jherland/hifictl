@@ -1,0 +1,63 @@
+Legend:
+ - A component/requirement needed in the final long-term solution.
+ = A component/requirement needed in the proof-of-concept phase.
+ * A note describing an alternate way to implement this component/requirement.
+ x A product that potentially satisfies the given requirements.
+ > A product that has been ordered
+
+HDMI signal sources:
+ - Media PC
+ - Get HD PVR
+ - PlayStation 3
+ - Wii (with component -> HDMI converter)
+ - DVD player?
+ - Audio PC?
+ - Digital SLR?
+ - Other external sources?
+
+HDMI switch specs:
+ - 5-8 HDMI inputs (or 4 HDMI inputs + 1 component input/digitizer).
+ - 1 HDMI output.
+ - HDMI v1.3 + 3D support.
+ - RS-232 control.
+ * Includes a HDMI audio splitter (1 PCM (SPDIF) output, see below)
+ x http://www.aten.com/products/productItem.php?model_no=VS0801H
+ x http://www.netshopxl.no/PartDetail.aspx?q=p:3977928
+ x(*) http://www.atlona.com/Atlona-4-by-1-HDMI-Switcher.html ($300, 4x1, v1.4, SPDIF for ARC only?)
+ x http://www.atlona.com/4x2-Atlona-HDMI-Switch-with-3D-Support.html ($350, 4x2, v1.3)
+ x http://www.atlona.com/8x1-Atlona-HDMI-1.3-Switch-with-3D-Support.html ($550, 8x1, v1.3)
+ x http://www.digitaltvexperten.se/produkt.php?p=1656 (SEK3300, 8x1, v1.3)
+ x http://www.digitaltvexperten.se/produkt.php?p=2206 (SEK3300, 8x1, v1.3)
+ x http://www.digitaltvexperten.se/produkt.php?p=1655 (SEK2600, 6x1, v1.3)
+ x http://www.digitaltvexperten.se/produkt.php?p=2205 (SEK2600, 6x1, v1.3)
+ x* http://www.atlona.com/Atlona-Professional-10-input-Video-Scaler-Processor-Switcher-with-HDMI-Output.html ($850, 4x1 + analog, v1.3)
+ x* http://www.prisguide.no/produkt/atlona-hdmi--digital-audio-switch-hdmi-13-119951 (no longer available?)
+ x* http://octavainc.com/HDMI%20switch%204x1%20ARC%20port_pro.html ($300, 4x1, v1.4?)
+ x(*) http://www.digitaltvexperten.se/produkt.php?p=2983 (SEK2500, 4x1, v1.4?, SPDIF out supports surround?)
+ x* http://www.octavainc.com/HDMI%20switch%204x2_7_1audio.html / http://www.digitaltvexperten.se/produkt.php?p=1803 ($350 / SEK4500, 4x2, v1.3)
+ >x* http://www.marmitek.com/en/product-details/audio-video-at-home/connect/connect-411.php / http://www.fyndborsen.se/bild-ljud/tillbehor/tillbehor-satellit/CONNECT-411-HDMI-SWITCH-4-VAG-DIGITAL (SEK2190, 4x1, v???)
+
+HDMI audio splitter:
+ - 1 HDMI input.
+ - 1 HDMI output.
+ - 1 PCM (SPDIF) output.
+ * The audio splitter might be integrated in the HDMI switch
+ x http://www.aten.com/products/productItem.php?model_no=vc880 ($150, €115)
+ x http://www.atlona.com/Atlona-HDMI-Audio-De-Embedder-with-3D-Support.html ($240)
+
+Audio PC:
+ - RS-232 interface for controlling HDMI switch.
+ - 1 PCM (SPDIF) input.
+ - Software decoding and processing pipeline (gstreamer w/various plugins).
+ - Entire pipeline must support at least 96kHz/24bit processing.
+ - 8 PCM outputs (>= 4 S/PDIF coax/toslink or >=4 AES/EBU or >= 2 ADAT (w/S/MUX)).
+ * 8 analog outputs (XLR or RCA) (see below)
+
+D/A conversion:
+ = Conversion from 8 PCM inputs to 8 analog outputs.
+ = 8 output XLR or RCA plugs (to be connected to the surround receiver's pre-in).
+ * 8 analog outputs from the Audio PCs audio interface.
+
+Unresolved questions:
+ - Word clock? Guess will have to deal with that if sync-related problems arise.
+
