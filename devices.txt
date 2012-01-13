@@ -4,6 +4,7 @@ Legend:
  * A note describing an alternate way to implement this component/requirement.
  x A product that potentially satisfies the given requirements.
  > A product that has been ordered
+ # A product that has been acquired
 
 HDMI signal sources:
  - Media PC
@@ -35,7 +36,7 @@ HDMI switch specs:
  x* http://octavainc.com/HDMI%20switch%204x1%20ARC%20port_pro.html ($300, 4x1, v1.4?)
  x(*) http://www.digitaltvexperten.se/produkt.php?p=2983 (SEK2500, 4x1, v1.4?, SPDIF out supports surround?)
  x* http://www.octavainc.com/HDMI%20switch%204x2_7_1audio.html / http://www.digitaltvexperten.se/produkt.php?p=1803 ($350 / SEK4500, 4x2, v1.3)
- >x* http://www.marmitek.com/en/product-details/audio-video-at-home/connect/connect-411.php / http://www.fyndborsen.se/bild-ljud/tillbehor/tillbehor-satellit/CONNECT-411-HDMI-SWITCH-4-VAG-DIGITAL (SEK2190, 4x1, v???)
+ #>x* http://www.marmitek.com/en/product-details/audio-video-at-home/connect/connect-411.php / http://www.fyndborsen.se/bild-ljud/tillbehor/tillbehor-satellit/CONNECT-411-HDMI-SWITCH-4-VAG-DIGITAL (SEK2190, 4x1, v???)
 
 HDMI audio splitter:
  - 1 HDMI input.
@@ -52,12 +53,118 @@ Audio PC:
  - Entire pipeline must support at least 96kHz/24bit processing.
  - 8 PCM outputs (>= 4 S/PDIF coax/toslink or >=4 AES/EBU or >= 2 ADAT (w/S/MUX)).
  * 8 analog outputs (XLR or RCA) (see below)
+ x http://www.exadevices.com/exaU2I/Overview.aspx (4 x CAD$430, bypass the audio interfact and output via USB => I2S to the PowerDAC)
 
 D/A conversion:
  = Conversion from 8 PCM inputs to 8 analog outputs.
  = 8 output XLR or RCA plugs (to be connected to the surround receiver's pre-in).
  * 8 analog outputs from the Audio PCs audio interface.
 
+Digital amps:
+ x http://www.minidsp.com/products/minidspkits/miniamp (TI PurePath, needs powersupply)
+ x http://www.sumoh.com/index-2.html
+ x http://www.wadia.com/products/amplifiers/151.php (too expensive)
+ x http://www.hfx.at/index.php?option=com_content&view=article&id=376&Itemid=185 (TI Purepath HD, too expensive)
+
+Cable runs from AV bench to speakers:
+ - 1x15m (SL)
+ - 1x10m (SR)
+ - 2x3m (FL & FR)
+ - 1x1m (SC)
+ - SW? (1m or 3m)
+
+Speaker ratings:
+ - 2 x SA1750 front speakers:
+    - Power handling: 180W
+    - Recommended amp: min. 50W
+    - Freq. range: 40Hz - 40kHz (+/- 3dB)
+    - Impedance: 4-8 Ohm
+    - Sensitivity (1W/1m): 90dB
+    - Principle: 2.5 way bass reflex
+    - Crossover network: 700Hz / 3kHz (24dB/oct.)
+    - Biwiring: Yes
+    - Elements:
+       - Tweeter: 1 x 1" TWG2506AV
+       - Woofer: 4 x 4,5" WFP1104AV
+ - 2 x SA1730 rear speakers:
+    - Power handling: 135W
+    - Recommended amp: min. 40W
+    - Freq. range: 45Hz - 40kHz (+/- 3dB)
+    - Impedance: 4-8 Ohm
+    - Sensitivity (1W/1m): 89dB
+    - Principle: 2.5 way bass reflex
+    - Crossover network: 700Hz / 3kHz (24dB/oct.)
+    - Biwiring: Yes
+    - Elements:
+       - Tweeter: 1 x 1" TWG2506AV
+       - Woofer: 2 x 4,5" WFP1108AV
+ - 1 x SA510AV center speaker:
+    - Power handling: 125W
+    - Recommended amp: min. 25W
+    - Freq. range: 45Hz - 35kHz (+/- 3dB)
+    - Impedance: 4-8 Ohm
+    - Sensitivity (1W/1m): 89dB
+    - Principle: 2 way bass reflex
+    - Crossover network: 3kHz (24dB/oct.)
+    - Biwiring: No
+    - Elements:
+       - Tweeter: 1 x 1" TWG2504AV
+       - Woofer: 2 x 4,5" W1108AV
+ - 3 x SA720AV center/rear speakers:
+    - Power handling: 155W
+    - Recommended amp: min. 25W
+    - Freq. range: 43Hz - 40kHz (+/- 3dB)
+    - Impedance: 4-8 Ohm
+    - Sensitivity (1W/1m): 89dB
+    - Principle: 2.5 way bass reflex
+    - Crossover network: 600Hz / 3kHz (24dB/oct.)
+    - Biwiring: Yes
+    - Elements:
+       - Tweeter: 1 x 1" TWG2506AV
+       - Woofer: 2 x 5,25" WFP1408AV
+ - 1 x SA exact center speaker:
+    - Power handling: 150W
+    - Recommended amp: min. 70W
+    - Freq. range: 45Hz - 35kHz (+/- 1.5dB)
+    - Impedance: 8 Ohm
+    - Sensitivity (1W/1m): 87dB
+    - Principle: 2 way bass reflex
+    - Crossover network: 2.5kHz (24dB/oct.)
+    - Biwiring: No
+    - Elements:
+       - Tweeter: 1 x 1" T2506XS
+       - Woofer: 2 x 5,25" W1404XL
+ - 1 x Paradigm ??? subwoofer:
+ - 2 x B&W ??? speakers
+
+Important realizations:
+ - Conversions between AES/EBU (XLR) and SPDIF (coax) are much simpler/cheaper
+   than conversions between other digital formats. This puts other options
+   (such as MADI, ADAT, Toslink, etc. at a clear disadvantage). Conclusion:
+   Find an audio interface with AES/EBU or SPDIF outputs.
+ - The longest speaker runs exceed may slightly 10m, which is the recommended
+   max length of SPDIF coax runs. AES/EBU XLR has a recommended max length of
+   100m, and therefore seems a safer choice.
+
+TI PurePath HD chips:
+ - TAS5706 (closed loop, 4x20W/2x40W, I2S input, 32kHz-192kHz) (similars: TAS5704, TAS5706A, TAS5706B
+ - TAS5708 (closed loop 2x20W, I2S input, 8kHz-48kHz) (similars: TAS5710)
+ - TAS5727 (closed loop, 2x25W, I2S input, 44.1kHz-48kHz)
+ - TAS5601 (closed loop, 4x10w/2x20W, PWM input) (similars: TAS5602)
+ * TAS5612A (closed loop, 2x125W/1x250W, PWM input, 80kHz)
+ * TAS5614A (closed loop, 2x150W/1x300W, PWM input, 80kHz)
+ * TAS5631 (closed loop, 4x145W/2x300W/1x600W, PWM input, 80kHz)
+ * TAS5631B (closed loop, 4x145W/2x300W/1x400W, PWM input, 80kHz)
+
+TI PurePath chips:
+ - TAS5707 (open loop, 2x20W, some have 2.1) (similars: TAS5707A, TAS5707B, TAS5711, TAS5713, TAS5715, TAS5717, TAS5719, TAS5731)
+ - TAS5162 (open loop, 2x210W)
+ - TAS5261 (open loop, 2x315W)
+
+TI analog input:
+ - TAS5611
+ - TAS5615
+ - TAS5630
+
 Unresolved questions:
  - Word clock? Guess will have to deal with that if sync-related problems arise.
-
