@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 
 import serial
-import time
 
 serial_device = "/dev/ttyUSB0"
 serial_baudrate = 19200
@@ -32,7 +31,7 @@ def main(args):
 		return usage("Unknown command '%s'" % (cmd))
 
 	# It seems pyserial needs the rtscts flag toggled in order to
-	# communicate consistently with the remote end.	
+	# communicate consistently with the remote end.
 	ser = serial.Serial(serial_device, serial_baudrate, rtscts = True)
 	ser.rtscts = False
 
