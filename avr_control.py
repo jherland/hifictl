@@ -2,8 +2,16 @@
 
 import serial
 
-serial_device = "/dev/ttyUSB1"
-serial_baudrate = 38400
+class AVR_Connection(serial.Serial):
+        """Encapsulate the serial port connection to a Harman Kardon AVR."""
+
+        def __init__(self, serialport, baudrate = 38400):
+                serial.Serial.__init__(self, serialport, baudrate, timeout = 1)
+
+                # It seems pyserial needs the rtscts flag toggled in order to
+                # communicate consistently with the remote end.
+                self.rtscts = True
+                self.rtscts = False
 
 # The following dict is copied from the table on pages 10-11 in the
 # H/K AVR RS-232 interface document
@@ -90,17 +98,17 @@ def calc_cksum(data):
                 cksum[i % 2] ^= ord(b)
         return chr(cksum[0]) + chr(cksum[1])
 
-def send_command(ser, cmd):
+def send_command(conn, cmd):
         """Send the given command to the AVR.
 
         The given command must be a key in AVR_Commands.
         """
         data = "".join(map(chr, AVR_Commands[cmd]))
         cmdstr = "PCSEND" + chr(0x02) + chr(0x04) + data + calc_cksum(data)
-        written = ser.write(cmdstr)
+        written = conn.write(cmdstr)
         assert written == len(cmdstr)
 
-def receive_status(ser):
+def receive_status(conn):
         """Receive status info from the AVR.
 
         The AVR continuously sends a 58-byte datagram over the serial port.
@@ -132,7 +140,7 @@ def receive_status(ser):
         """
 
         # Read enough data to hold at least one complete datagram
-        data = ser.read(58 * 3)
+        data = conn.read(58 * 3)
         # Assume that "MPSEND" only ever occurs at start of datagram
         i = data.index("MPSEND")
         dgram = data[i:i + 58]
@@ -160,14 +168,12 @@ def usage(msg):
 	print "  (where <cmd> is one of %s)" % (sorted(AVR_Commands.keys()))
 
 def main(args):
-	# It seems pyserial needs the rtscts flag toggled in order to
-	# communicate consistently with the remote end.
-	ser = serial.Serial(serial_device, serial_baudrate, rtscts = True, timeout = 1)
-	ser.rtscts = False
+        device = "/dev/ttyUSB1"
+        conn = AVR_Connection(device)
 
         # TODO: Turn this into a daemon that listens continuously on the serial
         # port for status datagrams, and updates an AVR_State instance.
-        lines = receive_status(ser)
+        lines = receive_status(conn)
         print "Read status:"
         print "    '%s'" % (lines[0])
         print "    '%s'" % (lines[1])
@@ -177,9 +183,9 @@ def main(args):
                 print "%02x" % (ord(b)),
         print
 
-        send_command(ser, "VOL UP")
+        send_command(conn, "VOL UP")
 
-        lines = receive_status(ser)
+        lines = receive_status(conn)
         print "Read status:"
         print "    '%s'" % (lines[0])
         print "    '%s'" % (lines[1])
@@ -189,9 +195,9 @@ def main(args):
                 print "%02x" % (ord(b)),
         print
 
-        send_command(ser, "VOL DOWN")
+        send_command(conn, "VOL DOWN")
 
-        lines = receive_status(ser)
+        lines = receive_status(conn)
         print "Read status:"
         print "    '%s'" % (lines[0])
         print "    '%s'" % (lines[1])
@@ -201,7 +207,7 @@ def main(args):
                 print "%02x" % (ord(b)),
         print
 
-        lines = receive_status(ser)
+        lines = receive_status(conn)
         print "Read status:"
         print "    '%s'" % (lines[0])
         print "    '%s'" % (lines[1])
@@ -211,7 +217,7 @@ def main(args):
                 print "%02x" % (ord(b)),
         print
 
-        lines = receive_status(ser)
+        lines = receive_status(conn)
         print "Read status:"
         print "    '%s'" % (lines[0])
         print "    '%s'" % (lines[1])
@@ -221,7 +227,7 @@ def main(args):
                 print "%02x" % (ord(b)),
         print
 
-        lines = receive_status(ser)
+        lines = receive_status(conn)
         print "Read status:"
         print "    '%s'" % (lines[0])
         print "    '%s'" % (lines[1])
@@ -231,7 +237,7 @@ def main(args):
                 print "%02x" % (ord(b)),
         print
 
-	ser.close()
+	conn.close()
 	return 0
 
 if __name__ == '__main__':
