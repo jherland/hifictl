@@ -215,7 +215,7 @@ class AVR_ConnHandler(asyncore.file_dispatcher):
 
                 The given command must be a key in the Commands dict.
                 """
-                data = "".join(map(chr, self.AVR_Commands[cmd]))
+                data = "".join(map(chr, self.Commands[cmd]))
                 cmdstr = "PCSEND" + chr(0x02) + chr(0x04) + data + self.calc_cksum(data)
                 written = self.conn.write(cmdstr)
                 assert written == len(cmdstr)
