@@ -17,7 +17,7 @@ def calc_cksum(data):
 	return chr(cksum[0]) + chr(cksum[1])
 
 
-class AVR_Connection(serial.Serial):
+class AVR_Connection(object):
 	"""Encapsulate the serial port connection to a Harman Kardon AVR."""
 
 	# The following dict is copied from the table on pages 10-11 in the
@@ -97,12 +97,12 @@ class AVR_Connection(serial.Serial):
 	Dgram_len = 58
 
 	def __init__(self, serialport, baudrate = 38400):
-		serial.Serial.__init__(self, serialport, baudrate)
+		self.f = serial.Serial(serialport, baudrate)
 
 		# It seems pyserial needs the rtscts flag toggled in order to
 		# communicate consistently with the remote end.
-		self.rtscts = True
-		self.rtscts = False
+		self.f.rtscts = True
+		self.f.rtscts = False
 
 		self.write_queue = Queue.Queue()
 
@@ -111,10 +111,10 @@ class AVR_Connection(serial.Serial):
 		on the serial port. Return that datagram.
 		"""
 		while True:
-		    self.flushInput()
-		    dgram = self.read(self.Dgram_len)
-		    if dgram.startswith("MPSEND"):
-			return dgram
+			self.f.flushInput()
+			dgram = self.f.read(self.Dgram_len)
+			if dgram.startswith("MPSEND"):
+				return dgram
 
 	def send_command(self, cmd):
 		"""Send the given command to the AVR.
@@ -129,10 +129,13 @@ class AVR_Connection(serial.Serial):
 		ret = self.read_dgram()
 		if not self.write_queue.empty():
 			dgram = self.write_queue.get()
-			written = self.write(dgram)
+			written = self.f.write(dgram)
 			assert written == len(dgram)
 			print "Wrote datagram '%s'" % (dgram) ### REMOVEME
 		return ret
+
+	def close(self):
+		self.f.close()
 
 
 class AVR_Status(object):
