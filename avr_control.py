@@ -223,8 +223,8 @@ class AVR_Command(object):
 		"TONE":           (0x82, 0x72, 0xC5, 0x3A),
 	}
 
-	@staticmethod
-	def parse_dgram(dgram):
+	@classmethod
+	def parse_dgram(cls, dgram):
 		"""Parse a datagram containing a command sent to the AVR.
 
 		The AVR receives 14-byte datagram over the serial port
@@ -255,8 +255,8 @@ class AVR_Command(object):
 
 		# Reverse-lookup the 4-byte data value in self.Commands
 		keyword = None
-		needle = [ord(c) for c in data]
-		for k, v in self.Commands.iteritems():
+		needle = tuple(ord(c) for c in data)
+		for k, v in cls.Commands.iteritems():
 			if needle == v:
 				keyword = k
 				break
