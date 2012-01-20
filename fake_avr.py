@@ -5,7 +5,8 @@ import os
 import fcntl
 import termios
 import time
-import avr_control
+
+from avr_control import AVR_Command, AVR_Status
 
 master, slave = pty.openpty()
 print "You can now connect avr_control.py to %s" % (os.ttyname(slave))
@@ -23,7 +24,7 @@ newterm[3] = newterm[3] & ~termios.ECHO # lflags
 termios.tcsetattr(master, termios.TCSAFLUSH, newterm)
 
 # Prepare the status info to send to the client
-status = avr_control.AVR_Status(
+status = AVR_Status(
 	'HTPC          ',
 	'DOLBY DIGITAL ',
 	"".join(map(chr, [0xc0, 0x00, 0x00, 0x00, 0xfd, 0xfb, 0x7a, 0x00, 0xc0,
