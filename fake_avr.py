@@ -3,6 +3,7 @@
 import pty
 import os
 import fcntl
+import termios
 import time
 import avr_control
 
@@ -15,6 +16,11 @@ os.close(slave)
 # Make the master descriptor non-blocking.
 fl = fcntl.fcntl(master, fcntl.F_GETFL)
 fcntl.fcntl(master, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+oldterm = termios.tcgetattr(master)
+newterm = termios.tcgetattr(master)
+newterm[3] = newterm[3] & ~termios.ECHO # lflags
+termios.tcsetattr(master, termios.TCSAFLUSH, newterm)
 
 # Prepare the status info to send to the client
 status = avr_control.AVR_Status(
@@ -32,4 +38,5 @@ except KeyboardInterrupt:
 	pass
 
 # Close the remaining descriptor
+termios.tcsetattr(master, termios.TCSAFLUSH, oldterm)
 os.close(master)
