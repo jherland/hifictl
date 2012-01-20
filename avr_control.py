@@ -288,7 +288,12 @@ def usage(msg):
 
 
 def main(args):
-	conn = AVR_Connection("/dev/ttyUSB1")
+	if len(args) >= 2 and args[0] == "-D":
+		tty = args[1]
+		args = args[2:]
+	else:
+		tty = "/dev/ttyUSB1"
+	conn = AVR_Connection(tty)
 
 	# Interpret command-line args as a single command to be sent to the AVR.
 	if args:
