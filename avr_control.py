@@ -20,6 +20,135 @@ def calc_cksum(data):
 class AVR_Connection(object):
 	"""Encapsulate the serial port connection to a Harman Kardon AVR."""
 
+	Dgram_len = 58
+
+	def __init__(self, serialport, baudrate = 38400):
+		self.f = serial.Serial(serialport, baudrate)
+
+		# It seems pyserial needs the rtscts flag toggled in
+		# order to communicate consistently with the remote end.
+		self.f.rtscts = True
+		self.f.rtscts = False
+
+		self.write_queue = Queue.Queue()
+
+	def read_dgram(self):
+		"""Block until exactly one 58-byte datagram has been received
+		on the serial port. Return that datagram.
+		"""
+		while True:
+			self.f.flush()
+			dgram = self.f.read(self.Dgram_len)
+			# All datagrams received from AVR starts with "MPSEND".
+			i = dgram.find("MPSEND")
+			if i == 0:
+				return dgram
+			elif i > 0:
+				assert i < self.Dgram_len
+				# read and return the rest of the dgram
+				return dgram[i:] + self.f.read(i)
+
+	def send_dgram(self, dgram):
+		"""Send the given datagram to the AVR."""
+		self.write_queue.put(dgram)
+
+	def write_and_read(self):
+		ret = self.read_dgram()
+		if not self.write_queue.empty():
+			dgram = self.write_queue.get()
+			written = self.f.write(dgram)
+			assert written == len(dgram)
+			print "Wrote datagram '%s'" % (dgram) ### REMOVEME
+		return ret
+
+	def close(self):
+		self.f.close()
+
+
+class AVR_Status(object):
+	"""Encapsulate a single AVR status update."""
+
+	@staticmethod
+	def parse_dgram(dgram):
+		"""Parse a datagram containing status info from the AVR.
+
+		The AVR continuously sends a 58-byte datagram over the serial
+		port. The datagram contains the same information that is visible
+		on the AVR front display. The datagram is structured as follows:
+
+		 - 6 bytes:  Transmission, AVR -> PC: "MPSEND" (ASCII)
+		 - 1 byte:   Data Type, AVR -> PC:    0x03
+		 - 1 byte:   Data Length, 48 bytes:   0x30
+		 - 48 bytes: Data:
+		    - 16 bytes: VFD first line of characters:
+		       - 1 byte:   0xf0
+		       - 14 bytes: ASCII data (e.g. "HTPC")
+		       - 1 byte:   0x00
+		    - 16 bytes: VFD second line of characters:
+		       - 1 byte:   0xf1
+		       - 14 bytes: ASCII data (e.g. "DOLBY DIGITAL")
+		       - 1 byte:   0x00
+		    - 16 bytes: VFD first line of characters:
+		       - 1 byte:   0xf2
+		       - 14 bytes: B_VFD_icon (?)
+		       - 1 byte:   0x00
+		 - 2 bytes:  Checksum:
+		    - High (second?) byte: XOR of all even bytes in data
+		    - Low (first?) byte:   XOR of all odd bytes in data
+
+		Return a 3-tuple containing the 3 data fields of the status
+		report, or throw an exception if parsing failed.
+		"""
+
+		assert len(dgram) == 58, "Expected length 58, got %u" % (len(dgram))
+		assert dgram.startswith("MPSEND")
+		assert ord(dgram[6]) == 0x03
+		assert ord(dgram[7]) == 0x30
+		data = dgram[8:56]
+		cksum = dgram[56:]
+		calcsum = calc_cksum(data)
+		assert cksum == calcsum, "Expected %02x %02x, got %02x %02x" % (ord(cksum[0]), ord(cksum[1]), ord(calcsum[0]), ord(calcsum[1]))
+		assert ord(data[0]) == 0xf0
+		assert ord(data[15]) == 0x00
+		assert ord(data[16]) == 0xf1
+		assert ord(data[31]) == 0x00
+		assert ord(data[32]) == 0xf2
+		assert ord(data[47]) == 0x00
+		return (data[1:15], data[17:31], data[33:47])
+
+	@classmethod
+	def from_dgram(cls, dgram):
+		return cls(*cls.parse_dgram(dgram))
+
+	def __init__(self, line1, line2, icons):
+		self.line1 = line1
+		self.line2 = line2
+		self.icons = icons
+
+	def __str__(self):
+		ret = "<AVR_Status: '%s' '%s' " % (self.line1, self.line2)
+		for b in self.icons:
+			ret += " %02x" % (ord(b))
+		ret += ">"
+		return ret
+
+	def dgram(self):
+		"""Create a datagram containing AVR status info.
+
+		Return a 58-byte datagram containing the information in this
+		object, with the encoding explained in the parse_dgram() docs.
+		"""
+		assert len(self.line1) == 14
+		assert len(self.line2) == 14
+		assert len(self.icons) == 14
+		data = chr(0xf0) + self.line1 + chr(0x00) + \
+		       chr(0xf1) + self.line2 + chr(0x00) + \
+		       chr(0xf2) + self.icons + chr(0x00)
+		cksum = calc_cksum(data)
+		return "MPSEND" + chr(0x03) + chr(len(data)) + data + cksum
+
+
+class AVR_Command(object):
 	# The following dict is copied from the table on pages 10-11 in the
 	# H/K AVR RS-232 interface document
 	Commands = {
@@ -94,109 +223,61 @@ class AVR_Connection(object):
 		"TONE":           (0x82, 0x72, 0xC5, 0x3A),
 	}
 
-	Dgram_len = 58
+	@staticmethod
+	def parse_dgram(dgram):
+		"""Parse a datagram containing a command sent to the AVR.
 
-	def __init__(self, serialport, baudrate = 38400):
-		self.f = serial.Serial(serialport, baudrate)
+		The AVR receives 14-byte datagram over the serial port
+		containing remote control commands to be executed by the AVR.
+		The datagram is structured as follows:
 
-		# It seems pyserial needs the rtscts flag toggled in order to
-		# communicate consistently with the remote end.
-		self.f.rtscts = True
-		self.f.rtscts = False
-
-		self.write_queue = Queue.Queue()
-
-	def read_dgram(self):
-		"""Block until exactly one 58-byte datagram has been received
-		on the serial port. Return that datagram.
-		"""
-		while True:
-			self.f.flushInput()
-			dgram = self.f.read(self.Dgram_len)
-			if dgram.startswith("MPSEND"):
-				return dgram
-
-	def send_command(self, cmd):
-		"""Send the given command to the AVR.
-
-		The given command must be a key in the Commands dict.
-		"""
-		data = "".join(map(chr, self.Commands[cmd]))
-		cmdstr = "PCSEND" + chr(0x02) + chr(0x04) + data + calc_cksum(data)
-		self.write_queue.put(cmdstr)
-
-	def write_and_read(self):
-		ret = self.read_dgram()
-		if not self.write_queue.empty():
-			dgram = self.write_queue.get()
-			written = self.f.write(dgram)
-			assert written == len(dgram)
-			print "Wrote datagram '%s'" % (dgram) ### REMOVEME
-		return ret
-
-	def close(self):
-		self.f.close()
-
-
-class AVR_Status(object):
-	"""Encapsulate a single AVR status update."""
-
-	def __init__(self, dgram):
-		self.line1, self.line2, self.icons = self.parse_dgram(dgram)
-
-	def __str__(self):
-		ret = "<AVR_Status: '%s' '%s' " % (self.line1, self.line2)
-		for b in self.icons:
-			ret += " %02x" % (ord(b))
-		ret += ">"
-		return ret
-
-	def parse_dgram(self, dgram):
-		"""Parse a datagram containing status info from the AVR.
-
-		The AVR continuously sends a 58-byte datagram over the serial
-		port. The datagram contains the same information that is visible
-		on the AVR front display. The datagram is structured as follows:
-
-		 - 6 bytes:  Transmission, AVR -> PC: "MPSEND" (ASCII)
-		 - 1 byte:   Data Type, AVR -> PC:    0x03
-		 - 1 byte:   Data Length, 48 bytes:   0x30
-		 - 48 bytes: Data:
-		    - 16 bytes: VFD first line of characters:
-		       - 1 byte:   0xf0
-		       - 14 bytes: ASCII data (e.g. "HTPC")
-		       - 1 byte:   0x00
-		    - 16 bytes: VFD second line of characters:
-		       - 1 byte:   0xf1
-		       - 14 bytes: ASCII data (e.g. "DOLBY DIGITAL")
-		       - 1 byte:   0x00
-		    - 16 bytes: VFD first line of characters:
-		       - 1 byte:   0xf2
-		       - 14 bytes: B_VFD_icon (?)
-		       - 1 byte:   0x00
+		 - 6 bytes:  Transmission, PC -> AVR: "PCSEND" (ASCII)
+		 - 1 byte:   Data Type, Remote control command: 0x02
+		 - 1 byte:   Data Length, 4 bytes: 0x04
+		 - 4 bytes:  Remote control command from the above map.
 		 - 2 bytes:  Checksum:
 		    - High (second?) byte: XOR of all even bytes in data
 		    - Low (first?) byte:   XOR of all odd bytes in data
 
-		Return a 3-tuple containing the 3 data fields of the status
-		report, or throw an exception if receiving/parsing failed.
+		Return a 2-tuple containing 4-byte data value, and the
+		corresponding keyword from the above map (or None). Throw an
+		exception if parsing failed.
 		"""
 
-		assert len(dgram) == 58, "Expected length 58, got %u" % (len(dgram))
-		assert dgram.startswith("MPSEND")
-		assert ord(dgram[6]) == 0x03
-		assert ord(dgram[7]) == 0x30
-		data = dgram[8:56]
-		cksum = dgram[56:]
+		assert len(dgram) == 14, "Expected length 14, got %u" % (len(dgram))
+		assert dgram.startswith("PCSEND")
+		assert ord(dgram[6]) == 0x02
+		assert ord(dgram[7]) == 0x04
+		data = dgram[8:12]
+		cksum = dgram[12:]
 		calcsum = calc_cksum(data)
 		assert cksum == calcsum, "Expected %02x %02x, got %02x %02x" % (ord(cksum[0]), ord(cksum[1]), ord(calcsum[0]), ord(calcsum[1]))
-		assert ord(data[0]) == 0xf0
-		assert ord(data[15]) == 0x00
-		assert ord(data[16]) == 0xf1
-		assert ord(data[31]) == 0x00
-		assert ord(data[32]) == 0xf2
-		assert ord(data[47]) == 0x00
-		return (data[1:15], data[17:31], data[33:47])
+
+		# Reverse-lookup the 4-byte data value in self.Commands
+		keyword = None
+		needle = [ord(c) for c in data]
+		for k, v in self.Commands.iteritems():
+			if needle == v:
+				keyword = k
+				break
+		return (data, keyword)
+
+	@classmethod
+	def from_dgram(cls, dgram):
+		data, keyword = cls.parse_dgram(dgram)
+		return cls(keyword)
+
+	def __init__(self, keyword):
+		assert keyword in self.Commands
+		self.keyword = keyword
+
+	def __str__(self):
+		return "<AVR_Command: '%s'>" % (self.keyword)
+
+	def dgram(self):
+		data = "".join(map(chr, self.Commands[self.keyword]))
+		cksum = calc_cksum(data)
+		return "PCSEND" + chr(0x02) + chr(len(data)) + data + cksum
 
 
 def usage(msg):
@@ -211,7 +292,7 @@ def main(args):
 
 	# Interpret command-line args as a single command to be sent to the AVR.
 	if args:
-		conn.send_command(" ".join(args))
+		conn.send_dgram(AVR_Command(" ".join(args)).dgram())
 
 	prev_dgram = None
 	ts = time.time()
@@ -221,11 +302,10 @@ def main(args):
 			continue # Skip if unchanged
 		prev_dgram = dgram
 
-		status = AVR_Status(dgram)
+		status = AVR_Status.from_dgram(dgram)
 
 		now = time.time()
 		print "%s (period: %f seconds)" % (status, now - ts)
-		sys.stdout.flush()
 		ts = now
 
 	conn.close()
