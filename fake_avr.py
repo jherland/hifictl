@@ -31,6 +31,8 @@ status = AVR_Status(
 			  0x00, 0x00, 0x00, 0x00, 0x00])))
 
 # Repeatedly send status info every 5/100 seconds, until aborted by the user
+start = time.time()
+now = start
 input_data = ""
 try:
 	while True:
@@ -43,8 +45,13 @@ try:
 			dgram = input_data[:AVR_Command.Dgram_len]
 			input_data = input_data[AVR_Command.Dgram_len:]
 			cmd = AVR_Command.from_dgram(dgram)
-			print "Received %s" % (cmd)
+			print "(%fs) Received %s" % (now - start, cmd)
 		time.sleep(0.05)
+		now = time.time()
+		if int((now - start) / 0.5) % 2:
+			status.line1 = 'HTPC2         '
+		else:
+			status.line1 = 'HTPC          '
 		os.write(master, status.dgram())
 except KeyboardInterrupt:
 	pass
