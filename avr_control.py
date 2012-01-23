@@ -126,9 +126,9 @@ class AVR_Status(object):
 		self.icons = icons
 
 	def __str__(self):
-		return "<AVR_Status: '%s' '%s' %s/%s -> %s {surround: %s}>" % (
+		return "<AVR_Status: '%s' '%s' %s/%s/%s -> %s>" % (
 			self.line1, self.line2, self.source(), self.ch_string(),
-			self.spkr_string(), self.surround())
+			self.surr_string(), self.spkr_string())
 
 	def dgram(self):
 		"""Create a datagram containing AVR status info.
@@ -146,21 +146,94 @@ class AVR_Status(object):
 		return "MPSEND" + chr(0x03) + chr(len(data)) + data + cksum
 
 	def surround(self):
-		"""Decode and return the surround mode from AVR status."""
+		"""Decode and return the surround mode from AVR status.
+
+		Returns the set of surround/processing modes enabled in this
+		AVR status. The set contains zero of more of the following
+		items:
+		 - "DOLBY DIGITAL" or "DOLBY DIGITAL EX"
+		 - "DOLBY PRO LOGIC" or "DOLBY PRO LOGIC II"
+		 - "DOLBY 3 STEREO"
+		 - "DOLBY HEADPHONE"
+		 - "DOLBY VIRTUAL"
+		 - "DTS" or "DTS ES"
+		 - "LOGIC 7"
+		 - "VMAX"
+		 - "DSP"
+		 - "5CH.STEREO" or "7CH.STEREO"
+		 - "SURR.OFF"
+		"""
 		# The following lists the reverse-engineered interpretation of
 		# icons[0:4] and how they correspond to the surround mode icons
 		# on the AVR front display:
-		#  D(] DIGITAL:      icons[0:4] == c0 00 00 00
-		#  D(] PRO LOGIC II: icons[0:4] == 1c 00 00 00
-		#  D(] PRO LOGIC:    icons[0:4] == 18 00 00 00
-		#  D(] VIRTUAL:      icons[0:4] == 00 0c 00 00
-		#  DSP, SURR. OFF:   icons[0:4] == 00 00 01 86
-		#  L7 LOGIC 7:       icons[0:4] == 00 00 18 00
-		#  SURR. OFF:        icons[0:4] == 00 00 00 06
-		#  DSP, 5 CH.STEREO: icons[0:4] == 00 00 01 e8
-		#  DTS:              icons[0:4] == 00 00 c0 00
-		surround_bytes = tuple([ord(b) for b in self.icons[0:4]])
-		return "%02x %02x %02x %02x" % surround_bytes
+		#  DOLBY DIGITAL:      icons[0:4] == c0 00 00 00
+		#  DOLBY PRO LOGIC II: icons[0:4] == 1c 00 00 00
+		#  DOLBY PRO LOGIC:    icons[0:4] == 18 00 00 00
+		#  DOLBY VIRTUAL:      icons[0:4] == 00 0c 00 00
+		#  DSP, SURR.OFF:      icons[0:4] == 00 00 01 86
+		#  L7 LOGIC 7:         icons[0:4] == 00 00 18 00
+		#  SURR. OFF:          icons[0:4] == 00 00 00 06
+		#  DSP, 5 CH.STEREO:   icons[0:4] == 00 00 01 e8
+		#  DTS:                icons[0:4] == 00 00 c0 00
+		#
+		# icons[0:4]:
+		#   [0]       [1]       [2]       [3]
+		#   8421 8421 8421 8421 8421 8421 8421 8421
+		#   ^^^^ ^^^^ ^^^^ ^^^^ ^^^^ ^^^^ ^^^^ ^^^^
+		#   |||| |||| |||| |||| |||| |||| |||| |||?
+		#   |||| |||| |||| |||| |||| |||| |||| ||* _SURR.OFF_
+		#   |||| |||| |||| |||| |||| |||| |||| |** SURR.OFF
+		#   |||| |||| |||| |||| |||| |||| |||| * 57_CH.STEREO_ ?
+		#   |||| |||| |||| |||| |||| |||| |||* 5_7_CH.STEREO ?
+		#   |||| |||| |||| |||| |||| |||| ||* _5_7CH.STEREO ?
+		#   |||| |||| |||| |||| |||| |||| |** 57CH.STEREO
+		#   |||| |||| |||| |||| |||| |||| * DSP
+		#   |||| |||| |||| |||| |||| |||** DSP
+		#   |||| |||| |||| |||| |||| ||* _VMax_ ?
+		#   |||| |||| |||| |||| |||| |** VMax ?
+		#   |||| |||| |||| |||| |||| * _L7 LOGIC 7_
+		#   |||| |||| |||| |||| |||** L7 LOGIC 7
+		#   |||| |||| |||| |||| ||* DTS _ES_ ?
+		#   |||| |||| |||| |||| |* _DTS_ ES
+		#   |||| |||| |||| |||| ** DTS ES
+		#   |||| |||| |||| |||?
+		#   |||| |||| |||| ||?
+		#   |||| |||| |||| |* _DOLBY VIRTUAL_
+		#   |||| |||| |||| ** DOLBY VIRTUAL
+		#   |||| |||| |||?
+		#   |||| |||| ||?
+		#   |||| |||| |* _DOLBY HEADPHONE_ ?
+		#   |||| |||| ** DOLBY HEADPHONE ?
+		#   |||| |||* _DOLBY 3 STEREO_ ?
+		#   |||| ||** DOLBY 3 STEREO ?
+		#   |||| |* DOLBY PRO LOGIC _II_
+		#   |||| * _DOLBY PRO LOGIC_ II
+		#   |||** DOLBY PRO LOGIC II
+		#   ||* DOLBY DIGITAL _EX_ ?
+		#   |* _DOLBY DIGITAL_ EX
+		#   ** DOLBY DIGITAL EX
+
+		buf = tuple([ord(b) for b in self.icons[0:4]])
+		ret = set()
+		if   buf[0] & 0x20: ret.add("DOLBY DIGITAL EX")
+		elif buf[0] & 0x40: ret.add("DOLBY DIGITAL")
+		if   buf[0] & 0x04: ret.add("DOLBY PRO LOGIC II")
+		elif buf[0] & 0x08: ret.add("DOLBY PRO LOGIC")
+		if   buf[0] & 0x01: ret.add("DOLBY 3 STEREO")
+		if   buf[1] & 0x40: ret.add("DOLBY HEADPHONE")
+		if   buf[1] & 0x04: ret.add("DOLBY VIRTUAL")
+		if   buf[2] & 0x20: ret.add("DTS ES")
+		elif buf[2] & 0x40: ret.add("DTS")
+		if   buf[2] & 0x08: ret.add("LOGIC 7")
+		if   buf[2] & 0x02: ret.add("VMAX")
+		if   buf[3] & 0x20: ret.add("DSP")
+		if   buf[3] & 0x10: ret.add("7CH.STEREO")
+		elif buf[3] & 0x20: ret.add("5CH.STEREO")
+		if   buf[3] & 0x02: ret.add("SURR.OFF")
+		return ret
+
+	def surr_string(self):
+		return "+".join(sorted(self.surround()))
 
 	# The following lists the reverse-engineered interpretation of
 	# icons[4:8] and how they correspond to the channel/speaker icons
