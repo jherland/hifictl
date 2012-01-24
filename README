@@ -1,0 +1,91 @@
+My playground for software associated with my home hifi/surround system.
+
+Current setup
+-------------
+
+In the short term, there'll be code for controlling A/V components from my
+media PC. The system currently looks something like this:
+
+  ----------    ----------------------    ---------------    ---------------
+ | Media PC |  | Cable TV set-top box |  | Playstation 3 |  | Other sources |
+  ----------    ----------------------    ---------------    ---------------
+     ||    \_____________________  |        |  _______________/
+     ||            (HDMI)        \ |        | /
+     ||                          -vv--------vv-      (HDMI)     ----
+     | ------------------------>| HDMI Switch  |-------------->| TV |
+     |(RS-232)                   --------------                 ----
+     |                                  |
+     |                                  | (SPDIF)
+     |                      ------------v----------
+      -------------------->| Harman/Kardon AVR 430 |
+                            -----------------------
+          (Analog speaker cables) | | | | |  \________________________
+              ___________________/  | | |  \______________            \
+             /              _______/  |  \_____           \            \
+            /              /          |        \           \            \
+  ---------v------    ----v---    ----v--    ---v----    ---v----    ----v----
+ | Front Left spk |  | FR spk |  | C spk |  | SL spk |  | SR spk |  |   S/W   |
+  ----------------    --------    -------    --------    --------    ---------
+
+The only software needed in the above setup is for controlling the HDMI Switch
+and the AVR from the media PC using RS-232. This way I should no longer need
+the IR remotes for the HDMI Switch and the AVR. Instead, I control them from
+the wireless keyboard of the media PC.
+
+
+Future setup
+------------
+
+In the longer term, I plan to build a hifi/surround system with digital
+signalling all the way to the speaker. The setup will look something like this:
+
+  ----------    ----------------------    ---------------    ---------------
+ | Media PC |  | Cable TV set-top box |  | Playstation 3 |  | Other sources |
+  ----------    ----------------------    ---------------    ---------------
+           \_____________________  |        |  _______________/
+                   (HDMI)        \ |        | /
+                                 -vv--------vv-      (HDMI)     ----
+                           ---->| HDMI Switch  |-------------->| TV |
+                          |      --------------                 ----
+                          |             |
+                  (RS-232)|             | (HDMI or SPDIF)
+                          |      -------v------
+                           -----|   Audio PC   |
+                                 --------------
+               (AES/EBU or SPDIF) | | | | |  \________________________
+              ___________________/  | | |  \______________            \
+             /              _______/  |  \_____           \            \
+            /              /          |        \           \            \
+  ---------v------    ----v---    ----v--    ---v----    ---v----    ----v----
+ | Front Left amp |  | FR amp |  | C amp |  | SL amp |  | SR amp |  | S/W DAC |
+  ----------------    --------    -------    --------    --------    ---------
+  (Analog) |              |           |         |           |            |
+  ---------v------    ----v---    ----v--    ---v----    ---v----    ----v----
+ | Front Left spk |  | FR spk |  | C spk |  | SL spk |  | SR spk |  |   S/W   |
+  ----------------    --------    -------    --------    --------    ---------
+
+Here, the AVR (which today functions as a digital-input/analog-output pre-amp
+and 5-channel power amp) is replaced by an Audio PC that will function as a
+digital-input/digital-output pre-amp, and a collection of digital-input power
+amps (aka. "PowerDACs"). There will be (nominally) one "PowerDAC" per speaker,
+and it will be located as physically close to that speaker as possible in order
+to minimize the length of analog speaker cable. (One possible exception from
+this rule will be the sub-woofer which usually contains its own amp, and
+therefore only needs a "regular" DAC in front of it.)
+
+The Audio PC is the heart of this system, and it will perform the following
+tasks:
+ - Source selection (by signalling the HDMI Switch over RS-232)
+ - Decoding (decoding the incoming surround signal into separate channels)
+ - Upsampling/sample-widening if necessary (96kHz/24bits should be sufficient)
+ - Volume control
+ - Room correction (requires a microphone for measurements)
+ - Crossover (depends on how many channels per amp per speaker)
+ - Digital output to all the speaker amps/DACs
+
+All the software written for the audio PC will be available here.
+
+
+Have fun! :)
+
+Johan Herland <johan@herland.net>
