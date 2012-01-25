@@ -53,18 +53,33 @@ Audio PC:
  - Entire pipeline must support at least 96kHz/24bit processing.
  - 8 PCM outputs (>= 4 S/PDIF coax/toslink or >=4 AES/EBU or >= 2 ADAT (w/S/MUX)).
  * 8 analog outputs (XLR or RCA) (see below)
- x http://www.exadevices.com/exaU2I/Overview.aspx (4 x CAD$430, bypass the audio interfact and output via USB => I2S to the PowerDAC)
+ x RME HDSPe AES: http://www.rme-audio.de/en_products_hdspe_aes.php (NOK7870, 8 AES/EBU I/O, no D/A, 192/24, PCIe)
+ x* RME DIGIFACE: http://www.rme-audio.de/en_products_digiface.php / http://www.finn.no/finn/torget/tilsalgs/annonse?finnkode=32568580 (NOK6790 / NOK3000, 3 ADAT I/O, 1 D/A (phones), 96/24, PCI)
+    + RME ADI-4 DD: http://www.rme-audio.de/en_products_adi_4_dd.php (NOK4995, 2 ADAT -> 4 AES/EBU, no D/A, 96/24)
 
 D/A conversion:
  = Conversion from 8 PCM inputs to 8 analog outputs.
  = 8 output XLR or RCA plugs (to be connected to the surround receiver's pre-in).
+ = Less D/A channels will be needed as more digital amps are acquired, however, the sub-woofer output might stay on a D/A converter.
  * 8 analog outputs from the Audio PCs audio interface.
+ x BEHRINGER ULTRAGAIN PRO-8 DIGITAL ADA8000: http://www.behringer.com/EN/Products/ADA8000.aspx (~NOK1000 used, 1 ADAT -> 8 XLR line out, 44.1 or 48 kHz only)
+    finn.no: http://www.finn.no/finn/torget/tilsalgs/annonse?finnkode=32601600
+    finn.no: http://www.finn.no/finn/torget/tilsalgs/annonse?finnkode=32556073
+ x* 4 x BEHRINGER ULTRAMATCH PRO SRC2496: http://www.behringer.com/EN/Products/SRC2496.aspx (4 x ~$250? / NOK?, 1 AES/EBU or SPDIF XLR/RCA/TOSLINK -> 2 XLR line out, 96/24)
+ x 2 x AJA ADA4: http://www.aja.com/products/converters/converters-hd-ada4.php (2 x ~$390?, 2 AES/EBU -> 4 XLR line out, 96/24, too expensive)
+ x 4 x RME ADI-2: http://www.rme-audio.de/en_products_adi_2.php (4 x $800 / NOK 5000, 1 AES/EBU or SPDIF or ADAT -> 2 XLR/TRS line out, 192/24, too expensive)
+ x* 1 x RME ADI-8 DS: http://www.rme-audio.de/en_products_adi_8_ds.php (NOK 11 000, 2 ADAT -> 8 TRS line out, 96/24, too expensive)
+ x 1 x RME ADI-8 QS: http://www.rme-audio.de/en_products_adi_8_qs.php (NOK 23 000, 4 AES/EBU or 2 ADAT -> 8 TRS line out, 192/24, too expensive)
+ x* 1 x RME M-16 DA: http://www.rme-audio.de/en_products_m32da.php (NOK 30 000, 4 ADAT -> 16 TRS line out, 96/24, too expensive)
+ x Twisted Pear Buffalo III DIY DAC: http://www.twistedpearaudio.com/digital/buffalo.aspx ($379, 4 AES/EBU? -> 8 ? line out, 192/24, OK price, very HQ, but requires a lot of work an additional components)
 
 Digital amps:
- x http://www.minidsp.com/products/minidspkits/miniamp (TI PurePath, needs powersupply)
- x http://www.sumoh.com/index-2.html
- x http://www.wadia.com/products/amplifiers/151.php (too expensive)
- x http://www.hfx.at/index.php?option=com_content&view=article&id=376&Itemid=185 (TI Purepath HD, too expensive)
+ x http://www.minidsp.com/products/minidspkits/miniamp ($60, TI PurePath, 4x10W or 2x20W, 192/24, 1 I2S, needs box and power supply, too small/weak)
+ x SUMOH TinyAmp S60: http://www.sumoh.com/ (€270, TI PurePath, 2x60W, 96/24, 1 SPDIF, wait for SUMOH w/PurePath HD?)
+ x HFX RipAMP 2.1/100: http://www.hfx.at/index.php?option=com_content&view=article&id=376&Itemid=185 (€700, TI Purepath HD, 96/24, USB only, too expensive - wait for SUMOH version)
+ x Wadia 151PowerDAC: http://www.wadia.com/products/amplifiers/151.php ($1200, unknown tech., 2x75W, 192/24, 2 SPDIF, 1 TOSLINK, too expensive)
+ x NAD C390 DD: http://nadelectronics.com/products/hifi-amplifiers/C-390DD-Direct-Digital-Powered-DAC-Amplifier (NOK 16 000, Zetex DDFA, 2x160W, 192/24, AES/EBU, RS-232)
+ x NAD M2: http://nadelectronics.com/products/hifi-amplifiers/M2-Direct-Digital-Amplifier (NOK 40 000, Zetex DDFA, 2x250W, 192/24, AES/EBU. RS-232)
 
 Cable runs from AV bench to speakers:
  - 1x15m (SL)
