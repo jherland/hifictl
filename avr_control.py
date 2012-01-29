@@ -79,6 +79,17 @@ class AVR_Connection(object):
 		assert cksum == calc_cksum(data), "Failed checksum"
 		return data
 
+	@classmethod
+	def build_dgram(cls, data, dgram_spec):
+		"""Embed the given data in a datagram of the given dgram_spec.
+
+		Return the full datagram, including protocol overhead.
+		"""
+		dgram_start, dgram_type, dgram_len = dgram_spec
+		assert len(data) == dgram_len, "Incorrect data length"
+		return dgram_start + chr(dgram_type) + chr(dgram_len) \
+			+ data + calc_cksum(data)
+
 	def __init__(self, serialport, baudrate = 38400):
 		self.f = serial.Serial(serialport, baudrate)
 
@@ -89,6 +100,8 @@ class AVR_Connection(object):
 
 		# Receive AVR->PC status info datagrams
 		self.recv_dgram_spec = ("MPSEND", 3, 48)
+		# Send PC->AVR remote control commands
+		self.send_dgram_spec = ("PCSEND", 2, 4)
 
 		self.write_queue = Queue.Queue()
 
@@ -128,8 +141,11 @@ class AVR_Connection(object):
 			dgram = dgram[i:] + self.f.read(i)
 			# Retry finding the start of the datagram
 
-	def send_dgram(self, dgram):
-		"""Send the given datagram to the AVR."""
+	def send_dgram(self, data, dgram_spec = None):
+		"""Send the given data according to the given datagram spec."""
+		if dgram_spec is None:
+			dgram_spec = self.send_dgram_spec
+		dgram = self.build_dgram(data, dgram_spec)
 		self.write_queue.put(dgram)
 
 	def write_and_recv(self):
@@ -138,7 +154,7 @@ class AVR_Connection(object):
 			dgram = self.write_queue.get()
 			written = self.f.write(dgram)
 			assert written == len(dgram)
-			print "Wrote datagram '%s'" % (dgram) ### REMOVEME
+			print "Wrote datagram '%s'" % (" ".join(["%02x" % (ord(b)) for b in dgram])) ### REMOVEME
 		return ret
 
 	def close(self):
@@ -206,11 +222,9 @@ class AVR_Status(object):
 		assert len(self.line1) == 14
 		assert len(self.line2) == 14
 		assert len(self.icons) == 14
-		data = chr(0xf0) + self.line1 + chr(0x00) + \
+		return chr(0xf0) + self.line1 + chr(0x00) + \
 		       chr(0xf1) + self.line2 + chr(0x00) + \
 		       chr(0xf2) + self.icons + chr(0x00)
-		cksum = calc_cksum(data)
-		return "MPSEND" + chr(0x03) + chr(len(data)) + data + cksum
 
 	def surround(self):
 		"""Decode and return the surround mode from AVR status.
@@ -613,9 +627,8 @@ class AVR_Command(object):
 		return "<AVR_Command: '%s'>" % (self.keyword)
 
 	def dgram(self):
-		data = "".join(map(chr, self.Commands[self.keyword]))
-		cksum = calc_cksum(data)
-		return "PCSEND" + chr(0x02) + chr(len(data)) + data + cksum
+		print "Sending '%s' [%s]" % (self.keyword, " ".join("%02x" % (b) for b in self.Commands[self.keyword]))
+		return "".join(map(chr, self.Commands[self.keyword]))
 
 
 def usage(msg):

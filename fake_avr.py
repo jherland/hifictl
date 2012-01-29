@@ -34,6 +34,7 @@ status = AVR_Status(
 start = time.time()
 now = start
 input_data = ""
+out_dgram_spec = ("MPSEND", 3, 48) # Send AVR->PC status updates
 in_dgram_spec = ("PCSEND", 2, 4) # Expect receiving PC->AVR remote commands
 in_dgram_len = AVR_Connection.full_dgram_len(in_dgram_spec)
 try:
@@ -55,7 +56,7 @@ try:
 			status.line1 = 'HTPC2         '
 		else:
 			status.line1 = 'HTPC          '
-		os.write(master, status.dgram())
+		os.write(master, AVR_Connection.build_dgram(status.dgram(), out_dgram_spec))
 except KeyboardInterrupt:
 	pass
 
