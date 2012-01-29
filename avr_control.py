@@ -5,6 +5,7 @@ import time
 from avr_conn import AVR_Connection
 from avr_status import AVR_Status
 from avr_command import AVR_Command
+from avr_state import AVR_State
 
 
 def usage(msg):
@@ -21,6 +22,7 @@ def main(args):
 	else:
 		tty = "/dev/ttyUSB1"
 	conn = AVR_Connection(tty)
+	state = AVR_State(conn)
 
 	# Interpret command-line args as a single command to be sent to the AVR.
 	if args:
@@ -35,9 +37,10 @@ def main(args):
 		prev_dgram = dgram
 
 		status = AVR_Status.from_dgram(dgram)
+		state.update(status)
 
 		now = time.time()
-		print "%s (period: %f seconds)" % (status, now - ts)
+		print "%s -> %s (period: %f seconds)" % (status, state, now - ts)
 		ts = now
 
 	conn.close()

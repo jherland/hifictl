@@ -65,6 +65,14 @@ class AVR_Status(object):
 		       chr(0xf1) + self.line2 + chr(0x00) + \
 		       chr(0xf2) + self.icons + chr(0x00)
 
+	def standby(self):
+		"""Decode and return whether AVR is in standby mode."""
+		# if self.icons is all 0x00, then assume we're in standby mode
+		for b in self.icons:
+			if ord(b):
+				return False
+		return True
+
 	def volume(self):
 		"""Decode and return current volume from AVR status."""
 		line = self.line2.strip()
