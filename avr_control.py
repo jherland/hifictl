@@ -587,8 +587,6 @@ class AVR_Command(object):
 		"TONE":           (0x82, 0x72, 0xC5, 0x3A),
 	}
 
-	Dgram_len = 14
-
 	@classmethod
 	def parse_dgram(cls, data):
 		"""Parse a datagram containing a command sent to the AVR.
