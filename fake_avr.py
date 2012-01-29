@@ -6,7 +6,10 @@ import fcntl
 import termios
 import time
 
-from avr_control import AVR_Connection, AVR_Status, AVR_Command
+from avr_conn import AVR_Connection
+from avr_status import AVR_Status
+from avr_command import AVR_Command
+
 
 master, slave = pty.openpty()
 print "You can now connect avr_control.py to %s" % (os.ttyname(slave))
