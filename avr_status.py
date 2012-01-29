@@ -65,6 +65,13 @@ class AVR_Status(object):
 		       chr(0xf1) + self.line2 + chr(0x00) + \
 		       chr(0xf2) + self.icons + chr(0x00)
 
+	def volume(self):
+		"""Decode and return current volume from AVR status."""
+		line = self.line2.strip()
+		if line.startswith("VOL ") and line.endswith("dB"):
+			return int(line[4:7])
+		return None
+
 	def surround(self):
 		"""Decode and return the surround mode from AVR status.
 
