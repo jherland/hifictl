@@ -1,11 +1,33 @@
 #!/usr/bin/env python2
 
+import os
 import time
+import atexit
 
 from avr_conn import AVR_Connection
 from avr_status import AVR_Status
 from avr_command import AVR_Command
 from avr_state import AVR_State
+
+
+fifo_name = "/tmp/avr_control"
+
+
+def create_fifo():
+	# Open FIFO for reading commands from clients
+	if os.path.exists(fifo_name):
+		raise OSError("%s exists. Another instance of %s running?" % (
+			fifo_name, os.path.basename(sys.argv[0])))
+	os.mkfifo(fifo_name)
+	return os.open(fifo_name, os.O_RDONLY | os.O_NONBLOCK)
+
+
+@atexit.register
+def destroy_fifo():
+	try:
+		os.remove(fifo_name)
+	except:
+		pass
 
 
 def usage(msg):
@@ -21,6 +43,9 @@ def main(args):
 		args = args[2:]
 	else:
 		tty = "/dev/ttyUSB1"
+
+
+	fifo_fd = create_fifo()
 	conn = AVR_Connection(tty)
 	state = AVR_State(conn)
 
@@ -29,8 +54,14 @@ def main(args):
 		conn.send_dgram(AVR_Command(" ".join(args)).dgram())
 
 	prev_dgram = None
+	fifo_input = ""
 	ts = time.time()
 	while True:
+		fifo_input += os.read(fifo_fd, 64)
+		cmds = fifo_input.split("\n")
+		fifo_input = cmds.pop()
+		for cmd in cmds:
+			state.handle_client_command(cmd.strip())
 		dgram = conn.write_and_recv()
 		if dgram == prev_dgram:
 			continue # Skip if unchanged
@@ -44,6 +75,7 @@ def main(args):
 		ts = now
 
 	conn.close()
+	os.close(fifo_fd)
 	return 0
 
 

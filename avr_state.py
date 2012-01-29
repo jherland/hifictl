@@ -53,6 +53,27 @@ class AVR_State(object):
 		if self.trg_vol is None:
 			self.trg_vol = self.cur_vol
 
+	def handle_client_command(self, cmd):
+		"""Handle the given client command."""
+		print "Handling command '%s'" % (cmd)
+		args = cmd.lower().split()
+		if args[0] == "standby":
+			assert len(args) == 2
+			assert args[1] in ("on", "true", "1", "off", "false", "0")
+			self.set_standby(args[1] in ("on", "true", "1"))
+		elif args[0] == "volume":
+			assert len(args) == 3
+			assert args[1] in ("set", "change")
+			vol = int(args[2])
+			if args[1] == "set":
+				self.set_vol(vol)
+			else:
+				self.change_vol(vol)
+		else:
+			print "Unknown command '%s'" % (cmd)
+		# Improve this by decorating "command" methods with "@command"
+		# and auto-deriving this parser from the decorated methods
+
 	def set_standby(self, standby = False):
 		"""Disable/enable standby mode."""
 		if standby != self.standby:
