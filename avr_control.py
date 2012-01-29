@@ -167,16 +167,19 @@ class AVR_Status(object):
 		# The following lists the reverse-engineered interpretation of
 		# icons[0:4] and how they correspond to the surround mode icons
 		# on the AVR front display:
-		#  DOLBY DIGITAL:      icons[0:4] == c0 00 00 00
-		#  DOLBY PRO LOGIC II: icons[0:4] == 1c 00 00 00
-		#  DOLBY PRO LOGIC:    icons[0:4] == 18 00 00 00
-		#  DOLBY VIRTUAL:      icons[0:4] == 00 0c 00 00
-		#  DSP, SURR.OFF:      icons[0:4] == 00 00 01 86
-		#  L7 LOGIC 7:         icons[0:4] == 00 00 18 00
-		#  SURR. OFF:          icons[0:4] == 00 00 00 06
-		#  DSP, 5 CH.STEREO:   icons[0:4] == 00 00 01 e8
-		#  DTS:                icons[0:4] == 00 00 c0 00
-		#  DSP:                icons[0:4] == 00 00 01 80
+		#  DOLBY DIGITAL:               icons[0:4] == c0 00 00 00
+		#  DOLBY PRO LOGIC II:          icons[0:4] == 1c 00 00 00
+		#  DOLBY PRO LOGIC:             icons[0:4] == 18 00 00 00
+		#  DOLBY VIRTUAL:               icons[0:4] == 00 0c 00 00
+		#  DSP, SURR.OFF:               icons[0:4] == 00 00 01 86
+		#  L7 LOGIC 7:                  icons[0:4] == 00 00 18 00
+		#  SURR. OFF:                   icons[0:4] == 00 00 00 06
+		#  DSP, 5 CH.STEREO:            icons[0:4] == 00 00 01 e8
+		#  DTS:                         icons[0:4] == 00 00 c0 00
+		#  DSP:                         icons[0:4] == 00 00 01 80
+		#  DOLBY PLII, DOLBY HEADPHONE: icons[0:4] == 1c 30 00 00
+		#  DOLBY DIGITAL, STEREO:       icons[0:4] == c0 40 00 00
+		#  DOLBY DIGITAL EX:            icons[0:4] == e0 00 00 00
 		#
 		# icons[0:4]:
 		#   [0]       [1]       [2]       [3]
@@ -202,16 +205,16 @@ class AVR_Status(object):
 		#   |||| |||| |||| ||?
 		#   |||| |||| |||| |* _DOLBY VIRTUAL_
 		#   |||| |||| |||| ** DOLBY VIRTUAL
-		#   |||| |||| |||?
-		#   |||| |||| ||?
-		#   |||| |||| |* _DOLBY HEADPHONE_ ?
-		#   |||| |||| ** DOLBY HEADPHONE ?
-		#   |||| |||* _DOLBY 3 STEREO_ ?
+		#   |||| |||| |||* _DOLBY HEADPHONE_
+		#   |||| |||| ||** DOLBY HEADPHONE
+		#   |||| |||| |* DOLBY 3 _STEREO_
+		#   |||| |||| * DOLBY _3_ STEREO ?
+		#   |||| |||* _DOLBY_ 3 STEREO ?
 		#   |||| ||** DOLBY 3 STEREO ?
 		#   |||| |* DOLBY PRO LOGIC _II_
 		#   |||| * _DOLBY PRO LOGIC_ II
 		#   |||** DOLBY PRO LOGIC II
-		#   ||* DOLBY DIGITAL _EX_ ?
+		#   ||* DOLBY DIGITAL _EX_
 		#   |* _DOLBY DIGITAL_ EX
 		#   ** DOLBY DIGITAL EX
 
@@ -222,7 +225,8 @@ class AVR_Status(object):
 		if   buf[0] & 0x04: ret.add("DOLBY PRO LOGIC II")
 		elif buf[0] & 0x08: ret.add("DOLBY PRO LOGIC")
 		if   buf[0] & 0x01: ret.add("DOLBY 3 STEREO")
-		if   buf[1] & 0x40: ret.add("DOLBY HEADPHONE")
+		if   buf[1] & 0x40: ret.add("STEREO")
+		if   buf[1] & 0x10: ret.add("DOLBY HEADPHONE")
 		if   buf[1] & 0x04: ret.add("DOLBY VIRTUAL")
 		if   buf[2] & 0x20: ret.add("DTS ES")
 		elif buf[2] & 0x40: ret.add("DTS")
