@@ -6,7 +6,7 @@ import fcntl
 import termios
 import time
 
-from avr_control import AVR_Command, AVR_Status
+from avr_control import AVR_Connection, AVR_Status, AVR_Command
 
 master, slave = pty.openpty()
 print "You can now connect avr_control.py to %s" % (os.ttyname(slave))
@@ -34,6 +34,8 @@ status = AVR_Status(
 start = time.time()
 now = start
 input_data = ""
+in_dgram_spec = ("PCSEND", 2, 4) # Expect receiving PC->AVR remote commands
+in_dgram_len = AVR_Connection.full_dgram_len(in_dgram_spec)
 try:
 	while True:
 		try:
@@ -41,10 +43,11 @@ try:
 		except OSError as e:
 			if e.errno not in [5, 11]:
 				raise e
-		while len(input_data) >= AVR_Command.Dgram_len:
-			dgram = input_data[:AVR_Command.Dgram_len]
-			input_data = input_data[AVR_Command.Dgram_len:]
-			cmd = AVR_Command.from_dgram(dgram)
+		while len(input_data) >= in_dgram_len:
+			dgram = input_data[:in_dgram_len]
+			input_data = input_data[in_dgram_len:]
+			cmd_data = AVR_Connection.parse_dgram(dgram, in_dgram_spec)
+			cmd = AVR_Command.from_dgram(cmd_data)
 			print "(%fs) Received %s" % (now - start, cmd)
 		time.sleep(0.05)
 		now = time.time()

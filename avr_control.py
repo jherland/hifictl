@@ -77,7 +77,7 @@ class AVR_Connection(object):
 		data = dgram[8 : 8 + dgram_len]
 		cksum = dgram[8 + dgram_len:]
 		assert cksum == calc_cksum(data), "Failed checksum"
-		return dgram
+		return data
 
 	def __init__(self, serialport, baudrate = 38400):
 		self.f = serial.Serial(serialport, baudrate)
@@ -149,46 +149,32 @@ class AVR_Status(object):
 	"""Encapsulate a single AVR status update."""
 
 	@staticmethod
-	def parse_dgram(dgram):
+	def parse_dgram(data):
 		"""Parse a datagram containing status info from the AVR.
 
-		The AVR continuously sends a 58-byte datagram over the serial
+		The AVR continuously sends a 48-byte datagrams over the serial
 		port. The datagram contains the same information that is visible
-		on the AVR front display. The datagram is structured as follows:
-
-		 - 6 bytes:  Transmission, AVR -> PC: "MPSEND" (ASCII)
-		 - 1 byte:   Data Type, AVR -> PC:    0x03
-		 - 1 byte:   Data Length, 48 bytes:   0x30
-		 - 48 bytes: Data:
-		    - 16 bytes: VFD first line of characters:
-		       - 1 byte:   0xf0
-		       - 14 bytes: ASCII data (e.g. "HTPC")
-		       - 1 byte:   0x00
-		    - 16 bytes: VFD second line of characters:
-		       - 1 byte:   0xf1
-		       - 14 bytes: ASCII data (e.g. "DOLBY DIGITAL")
-		       - 1 byte:   0x00
-		    - 16 bytes: VFD first line of characters:
-		       - 1 byte:   0xf2
-		       - 14 bytes: B_VFD_icon (?)
-		       - 1 byte:   0x00
-		 - 2 bytes:  Checksum:
-		    - High (second?) byte: XOR of all even bytes in data
-		    - Low (first?) byte:   XOR of all odd bytes in data
+		on the AVR front display. The datagram is structured as follows
+		(excluding the protocol overhead that is stripped by
+		AVR_Connection):
+		 - 16 bytes: VFD first line of characters:
+		    - 1 byte:   0xf0
+		    - 14 bytes: ASCII data (e.g. "DVD           ")
+		    - 1 byte:   0x00
+		 - 16 bytes: VFD second line of characters:
+		    - 1 byte:   0xf1
+		    - 14 bytes: ASCII data (e.g. "DOLBY DIGITAL ")
+		    - 1 byte:   0x00
+		 - 16 bytes: VFD icons encoded as a series of bit flags:
+		    - 1 byte:   0xf2
+		    - 14 bytes: VFD icons (see below comments for details)
+		    - 1 byte:   0x00
 
 		Return a 3-tuple containing the 3 data fields of the status
 		report, or throw an exception if parsing failed.
 		"""
-
-		assert len(dgram) == 58, "Expected length 58, got %u" % (len(dgram))
-		assert dgram.startswith("MPSEND")
-		assert ord(dgram[6]) == 0x03
-		assert ord(dgram[7]) == 0x30
-		data = dgram[8:56]
-		cksum = dgram[56:]
-		calcsum = calc_cksum(data)
-		assert cksum == calcsum, "Expected %02x %02x, got %02x %02x" % (ord(cksum[0]), ord(cksum[1]), ord(calcsum[0]), ord(calcsum[1]))
-		assert ord(data[0]) == 0xf0
+		assert len(data) == 48, "Unexpected length"
+		assert ord(data[0])  == 0xf0
 		assert ord(data[15]) == 0x00
 		assert ord(data[16]) == 0xf1
 		assert ord(data[31]) == 0x00
@@ -590,36 +576,22 @@ class AVR_Command(object):
 	Dgram_len = 14
 
 	@classmethod
-	def parse_dgram(cls, dgram):
+	def parse_dgram(cls, data):
 		"""Parse a datagram containing a command sent to the AVR.
 
-		The AVR receives 14-byte datagram over the serial port
+		The AVR receives 4-byte datagram over the serial port (not
+		including the protocol overhead managed by AVR_Connection)
 		containing remote control commands to be executed by the AVR.
-		The datagram is structured as follows:
-
-		 - 6 bytes:  Transmission, PC -> AVR: "PCSEND" (ASCII)
-		 - 1 byte:   Data Type, Remote control command: 0x02
-		 - 1 byte:   Data Length, 4 bytes: 0x04
-		 - 4 bytes:  Remote control command from the above map.
-		 - 2 bytes:  Checksum:
-		    - High (second?) byte: XOR of all even bytes in data
-		    - Low (first?) byte:   XOR of all odd bytes in data
+		The 4-byte remote control codes are listed in the above
+		dictionary.
 
 		Return a 2-tuple containing 4-byte data value, and the
-		corresponding keyword from the above map (or None). Throw an
-		exception if parsing failed.
+		corresponding keyword from the above dictionary (or None).
+		Throw an exception if parsing failed.
 		"""
+		assert len(data) == 4, "Unexpected length"
 
-		assert len(dgram) == 14, "Expected length 14, got %u" % (len(dgram))
-		assert dgram.startswith("PCSEND")
-		assert ord(dgram[6]) == 0x02
-		assert ord(dgram[7]) == 0x04
-		data = dgram[8:12]
-		cksum = dgram[12:]
-		calcsum = calc_cksum(data)
-		assert cksum == calcsum, "Expected %02x %02x, got %02x %02x" % (ord(cksum[0]), ord(cksum[1]), ord(calcsum[0]), ord(calcsum[1]))
-
-		# Reverse-lookup the 4-byte data value in self.Commands
+		# Reverse-lookup the 4-byte data value in the command dict
 		keyword = None
 		needle = tuple(ord(c) for c in data)
 		for k, v in cls.Commands.iteritems():
