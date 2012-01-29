@@ -5,20 +5,20 @@ import time
 import Queue
 
 
-def calc_cksum(data):
-	"""Return the two-byte checksum calculated from the given data.
-
-	The checksum algorithm XORs the bytes at even/odd indices, and stores
-	the result in the first/second byte of the result.
-	"""
-	cksum = [0, 0]
-	for i, b in enumerate(data):
-		cksum[i % 2] ^= ord(b)
-	return chr(cksum[0]) + chr(cksum[1])
-
-
 class AVR_Connection(object):
 	"""Encapsulate the serial port connection to a Harman Kardon AVR."""
+
+	@staticmethod
+	def calc_cksum(data):
+		"""Return the two-byte checksum calculated from the given data.
+
+		The checksum algorithm XORs the bytes at even/odd indices, and
+		stores the result in the first/second byte of the return value.
+		"""
+		cksum = [0, 0]
+		for i, b in enumerate(data):
+			cksum[i % 2] ^= ord(b)
+		return chr(cksum[0]) + chr(cksum[1])
 
 	@staticmethod
 	def full_dgram_len(dgram_spec):
@@ -76,7 +76,7 @@ class AVR_Connection(object):
 		assert ord(dgram[7]) == dgram_len, "Unexpected data length"
 		data = dgram[8 : 8 + dgram_len]
 		cksum = dgram[8 + dgram_len:]
-		assert cksum == calc_cksum(data), "Failed checksum"
+		assert cksum == cls.calc_cksum(data), "Failed checksum"
 		return data
 
 	@classmethod
@@ -88,7 +88,7 @@ class AVR_Connection(object):
 		dgram_start, dgram_type, dgram_len = dgram_spec
 		assert len(data) == dgram_len, "Incorrect data length"
 		return dgram_start + chr(dgram_type) + chr(dgram_len) \
-			+ data + calc_cksum(data)
+			+ data + cls.calc_cksum(data)
 
 	def __init__(self, serialport, baudrate = 38400):
 		self.f = serial.Serial(serialport, baudrate)
