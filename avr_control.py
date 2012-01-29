@@ -126,9 +126,10 @@ class AVR_Status(object):
 		self.icons = icons
 
 	def __str__(self):
-		return "<AVR_Status: '%s' '%s' %s/%s/%s -> %s>" % (
+		return "<AVR_Status: '%s' '%s' %s/%s/%s -> %s [%s]>" % (
 			self.line1, self.line2, self.source(), self.ch_string(),
-			self.surr_string(), self.spkr_string())
+			self.surr_string(), self.spkr_string(),
+			" ".join(["%02x" % (ord(b)) for b in self.icons]))
 
 	def dgram(self):
 		"""Create a datagram containing AVR status info.
