@@ -98,17 +98,6 @@ class AVR_Connection(object):
 
 		self.write_queue = Queue.Queue()
 
-	def recv_dgram(self, dgram_spec = None):
-		"""Block until exactly one datagram of the given specification
-		has been received on this AVR connection. Return the data
-		portion of that datagram.
-		"""
-		if dgram_spec is None:
-			dgram_spec = self.recv_dgram_spec
-		full_dgram_len = self.full_dgram_len(dgram_spec)
-		dgram = self.read_dgram(dgram_spec[0], full_dgram_len)
-		return self.parse_dgram(dgram, dgram_spec)
-
 	def read_dgram(self, dgram_start, dgram_len):
 		"""Find the given start of the next datagram, and read the
 		given number of bytes starting from there.
@@ -133,6 +122,17 @@ class AVR_Connection(object):
 			# Read the remainder of the datagram
 			dgram = dgram[i:] + self.f.read(i)
 			# Retry finding the start of the datagram
+
+	def recv_dgram(self, dgram_spec = None):
+		"""Block until exactly one datagram of the given specification
+		has been received on this AVR connection. Return the data
+		portion of that datagram.
+		"""
+		if dgram_spec is None:
+			dgram_spec = self.recv_dgram_spec
+		full_dgram_len = self.full_dgram_len(dgram_spec)
+		dgram = self.read_dgram(dgram_spec[0], full_dgram_len)
+		return self.parse_dgram(dgram, dgram_spec)
 
 	def send_dgram(self, data, dgram_spec = None):
 		"""Send the given data according to the given datagram spec."""
