@@ -11,6 +11,9 @@ class AVR_State(object):
 	MinVol = -80 # dB
 	MaxVol = -20 # +8 dB
 
+	TrueValues = ("on", "true", "1")
+	FalseValues = ("off", "false", "0")
+
 	@staticmethod
 	def vol_string(vol):
 		if vol is None:
@@ -59,8 +62,8 @@ class AVR_State(object):
 		args = cmd.lower().split()
 		if args[0] == "standby":
 			assert len(args) == 2
-			assert args[1] in ("on", "true", "1", "off", "false", "0")
-			self.set_standby(args[1] in ("on", "true", "1"))
+			assert args[1] in self.TrueValues + self.FalseValues
+			self.set_standby(args[1] in self.TrueValues)
 		elif args[0] == "volume":
 			assert len(args) == 3
 			assert args[1] in ("set", "change")

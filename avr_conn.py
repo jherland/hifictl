@@ -127,6 +127,8 @@ class AVR_Connection(object):
 		"""Block until exactly one datagram of the given specification
 		has been received on this AVR connection. Return the data
 		portion of that datagram.
+
+		This method requires that self.f is in blocking mode.
 		"""
 		if dgram_spec is None:
 			dgram_spec = self.recv_dgram_spec
