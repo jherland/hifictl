@@ -43,6 +43,9 @@ class AVR_Status(object):
 		return cls(*cls.parse_dgram(dgram))
 
 	def __init__(self, line1, line2, icons):
+		assert len(line1) == 14
+		assert len(line2) == 14
+		assert len(icons) == 14
 		self.line1 = line1
 		self.line2 = line2
 		self.icons = icons
