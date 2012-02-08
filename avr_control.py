@@ -3,6 +3,7 @@
 import os
 import time
 import atexit
+import serial
 
 from avr_conn import AVR_Connection
 from avr_status import AVR_Status
@@ -44,9 +45,16 @@ def main(args):
 	else:
 		tty = "/dev/ttyUSB1"
 
+	f = serial.Serial(tty, 38400)
+
+	# It seems pyserial needs the rtscts flag toggled in
+	# order to communicate consistently with the remote end.
+	f.rtscts = True
+	f.rtscts = False
+
 
 	fifo_fd = create_fifo()
-	conn = AVR_Connection(tty)
+	conn = AVR_Connection(f)
 	state = AVR_State(conn)
 
 	# Interpret command-line args as a single command to be sent to the AVR.
