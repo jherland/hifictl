@@ -14,21 +14,21 @@ from avr_state import AVR_State
 fifo_name = "/tmp/avr_control"
 
 
+def destroy_fifo():
+	try:
+		os.remove(fifo_name)
+	except:
+		pass
+
+
 def create_fifo():
 	# Open FIFO for reading commands from clients
 	if os.path.exists(fifo_name):
 		raise OSError("%s exists. Another instance of %s running?" % (
 			fifo_name, os.path.basename(sys.argv[0])))
 	os.mkfifo(fifo_name)
+	atexit.register(destroy_fifo)
 	return os.open(fifo_name, os.O_RDONLY | os.O_NONBLOCK)
-
-
-@atexit.register
-def destroy_fifo():
-	try:
-		os.remove(fifo_name)
-	except:
-		pass
 
 
 def usage(msg):
@@ -51,7 +51,6 @@ def main(args):
 	# order to communicate consistently with the remote end.
 	f.rtscts = True
 	f.rtscts = False
-
 
 	fifo_fd = create_fifo()
 	conn = AVR_Connection(f)
