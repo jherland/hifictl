@@ -13,6 +13,7 @@ class AVR_State(object):
 
 	TrueValues = ("on", "true", "1")
 	FalseValues = ("off", "false", "0")
+	ToggleValues = ("toggle", "!")
 
 	@staticmethod
 	def vol_string(vol):
@@ -62,8 +63,9 @@ class AVR_State(object):
 		args = cmd.lower().split()
 		if args[0] == "standby":
 			assert len(args) == 2
-			assert args[1] in self.TrueValues + self.FalseValues
-			self.set_standby(args[1] in self.TrueValues)
+			assert args[1] in self.TrueValues + self.FalseValues + self.ToggleValues
+			self.set_standby((args[1] in self.TrueValues) or
+			                 ((args[1] in self.ToggleValues) and not self.standby))
 		elif args[0] == "volume":
 			assert len(args) == 3
 			assert args[1] in ("set", "change")
