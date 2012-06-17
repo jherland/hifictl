@@ -76,6 +76,13 @@ class AVR_Status(object):
 				return False
 		return True
 
+	def mute(self):
+		"""Decode and return whether AVR is in mute mode."""
+		# when muted, the VFD flashes "MUTE" at 1 Hz
+		if self.line1.strip() in ('MUTE', '') and not self.line2.strip():
+			return True
+		return False
+
 	def volume(self):
 		"""Decode and return current volume from AVR status."""
 		line = self.line2.strip()

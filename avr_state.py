@@ -26,6 +26,7 @@ class AVR_State(object):
 		self.conn = conn # AVR_Connection object
 
 		self.standby = None # Standby mode (unknown)
+		self.mute    = None # Mute mode (unknown)
 		self.cur_vol = None # Current volume (unknown)
 		self.trg_vol = None # Target volume (no target)
 
@@ -50,6 +51,9 @@ class AVR_State(object):
 		# Power on/off
 		self.standby = status.standby()
 
+		# Mute on/off
+		self.mute = status.mute()
+
 		# Volume
 		vol = status.volume()
 		if vol is not None:
@@ -66,6 +70,11 @@ class AVR_State(object):
 			assert args[1] in self.TrueValues + self.FalseValues + self.ToggleValues
 			self.set_standby((args[1] in self.TrueValues) or
 			                 ((args[1] in self.ToggleValues) and not self.standby))
+		elif args[0] == "mute":
+			assert len(args) == 2
+			assert args[1] in self.TrueValues + self.FalseValues + self.ToggleValues
+			self.set_mute((args[1] in self.TrueValues) or
+			              ((args[1] in self.ToggleValues) and not self.mute))
 		elif args[0] == "volume":
 			assert len(args) == 3
 			assert args[1] in ("set", "change")
@@ -86,6 +95,11 @@ class AVR_State(object):
 				self.send_avr_command("POWER OFF")
 			else:
 				self.send_avr_command("POWER ON")
+
+	def set_mute(self, mute = False):
+		"""Disable/enable mute mode."""
+		if mute != self.mute:
+			self.send_avr_command("MUTE")
 
 	def set_vol(self, vol):
 		"""Set the volume to the given absolute value.
