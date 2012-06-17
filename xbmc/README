@@ -1,0 +1,9 @@
+Files for making stuff work right in XBMC
+
+ - keyboard_addon_bindings.xml
+    - Maps XBMC keys to addon actions
+    - Add a symlink to this file from within XBMC's userdata/keymaps directory
+
+ - script.avr-control-client
+    - Addon for forwarding XBMC events to an external AVR Controller
+    - Add a symlink to this directory from within XBMC's addon directory

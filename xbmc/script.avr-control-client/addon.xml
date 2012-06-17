@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon
+  id="script.avr-control-client"
+  name="AVR Controller client"
+  version="0.1"
+  provider-name="Johan Herland">
+  <requires>
+    <import addon="xbmc.python" version="1.0"/>
+  </requires>
+  <extension point="xbmc.python.script" library="default.py" />
+  <extension point="xbmc.addon.metadata">
+    <language/>
+    <summary>Forward XBMC events to an AVR Control server</summary>
+    <description>This addon will intercept XBMC events (such as key presses or other events) and convert them into AVR control commands being sent to the AVR Controller listening at /tmp/avr_control.</description>
+    <disclaimer>Depends on keymap configuration to trigger this script with event arguments which will be converted into AVR commands by this script. Also depends on an AVR Controller listening on /tmp/avr_control.</disclaimer>
+  </extension>
+</addon>

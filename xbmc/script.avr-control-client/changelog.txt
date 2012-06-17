@@ -1,0 +1,7 @@
+[B]Todo:[/B]
+- Extend command mapping as needed
+- Enable sending HDMI switch signals to appropriate server
+
+[B]Version 0.1 (Alpha)[/B]
+- Initial version
+- Supports volume control by sending commands to /tmp/avr_control
