@@ -31,12 +31,17 @@ class AVR_State(object):
 		self.trg_vol = None # Target volume (no target)
 
 	def __str__(self):
+		status = []
 		if self.standby:
-			return "<AVR_State: OFF>"
+			status.append("OFF")
+		elif self.mute:
+			status.append("MUTE")
+		else:
+			status.append("%s/%s" % (
+				self.vol_string(self.cur_vol),
+				self.vol_string(self.trg_vol)))
 
-		return "<AVR_State: %s/%s>" % (
-			self.vol_string(self.cur_vol),
-			self.vol_string(self.trg_vol))
+		return "<AVR_State: %s>" % (" ".join(status))
 
 	def send_avr_command(self, avr_command):
 		"""Send the given AVR command."""
