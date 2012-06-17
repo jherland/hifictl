@@ -30,6 +30,9 @@ class AVR_State(object):
 		self.cur_vol = None # Current volume (unknown)
 		self.trg_vol = None # Target volume (no target)
 
+		# Need volume command to trigger volume display
+		self.send_avr_command("VOL DOWN")
+
 	def __str__(self):
 		status = []
 		if self.standby:
