@@ -97,8 +97,9 @@ class AVR_State(object):
 
 	def change_vol(self, vol):
 		"""Adjust the volume by the given relative value."""
-		self.trg_volume += vol
-		if self.trg_volume > self.MaxVol:
-			self.trg_volume = self.MaxVol
-		if self.trg_volume < self.MaxVol:
-			self.trg_volume = self.MinVol
+		assert self.trg_vol
+		self.trg_vol += vol
+		if self.trg_vol > self.MaxVol:
+			self.trg_vol = self.MaxVol
+		if self.trg_vol < self.MinVol:
+			self.trg_vol = self.MinVol
