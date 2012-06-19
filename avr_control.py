@@ -1,5 +1,14 @@
 #!/usr/bin/env python2
 
+"""
+Receive commands for controlling the AVR on a FIFO.
+
+Receive status updates from AVR connected on a serial port.
+Forward commands to AVR over the serial port.
+
+Keep as little local state as possible
+"""
+
 import os
 import time
 import atexit
@@ -8,11 +17,20 @@ import serial
 from avr_conn import AVR_Connection
 from avr_status import AVR_Status
 from avr_command import AVR_Command
-from avr_state import AVR_State
-
 
 fifo_name = "/tmp/avr_control"
 
+avr_tty = "/dev/ttyUSB1"
+avr_baudrate = 38400
+
+# Map FIFO command to corresponding AVR command
+AVR_Map = {
+	"on":   "POWER ON",
+	"off":  "POWER OFF",
+	"mute": "MUTE",
+	"vol+": "VOL UP",
+	"vol-": "VOL DOWN",
+}
 
 def destroy_fifo():
 	try:
@@ -34,31 +52,26 @@ def create_fifo():
 def usage(msg):
 	print msg + ":"
 	print "Usage:"
-	print "  avr_control.py <cmd>"
-	print "  (where <cmd> is one of %s)" % (sorted(AVR_Commands.keys()))
+	print "  avr_control.py"
+	print "  (then write <cmd> to %s, where <cmd> is one of %s)" % (
+		fifo_name, sorted(AVR_Commands.keys()))
 
 
 def main(args):
 	if len(args) >= 2 and args[0] == "-D":
-		tty = args[1]
+		avr_tty = args[1]
 		args = args[2:]
-	else:
-		tty = "/dev/ttyUSB1"
 
-	f = serial.Serial(tty, 38400)
+	if args:
+		usage("Unknown arg(s): '%s'" % (" ".join(args)))
 
 	# It seems pyserial needs the rtscts flag toggled in
 	# order to communicate consistently with the remote end.
-	f.rtscts = True
+	f = serial.Serial(avr_tty, avr_baudrate, rtscts = True)
 	f.rtscts = False
 
 	fifo_fd = create_fifo()
 	conn = AVR_Connection(f)
-	state = AVR_State(conn)
-
-	# Interpret command-line args as a single command to be sent to the AVR.
-	if args:
-		conn.send_dgram(AVR_Command(" ".join(args)).dgram())
 
 	prev_dgram = None
 	fifo_input = ""
@@ -68,17 +81,19 @@ def main(args):
 		cmds = fifo_input.split("\n")
 		fifo_input = cmds.pop()
 		for cmd in cmds:
-			state.handle_client_command(cmd.strip())
+			if cmd not in AVR_Map:
+				print "Unknown command '%s'" % (cmd)
+			else:
+				conn.send_dgram(AVR_Command(AVR_Map[cmd]).dgram())
 		dgram = conn.write_and_recv()
 		if dgram == prev_dgram:
 			continue # Skip if unchanged
 		prev_dgram = dgram
 
 		status = AVR_Status.from_dgram(dgram)
-		state.update(status)
 
 		now = time.time()
-		print "%s -> %s (period: %f seconds)" % (status, state, now - ts)
+		print "%s (period: %f seconds)" % (status, now - ts)
 		ts = now
 
 	conn.close()
