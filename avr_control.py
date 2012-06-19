@@ -17,8 +17,10 @@ from avr_conn import AVR_Connection
 from avr_status import AVR_Status
 from avr_command import AVR_Command
 
+# Connection point to clients that want to control the AVR
 fifo_name = "/tmp/avr_control"
 
+# Where the AVR itself is connected
 avr_tty = "/dev/ttyUSB1"
 
 # Map FIFO command to corresponding AVR command
@@ -50,9 +52,12 @@ def create_fifo():
 def usage(msg):
 	print msg + ":"
 	print "Usage:"
-	print "  avr_control.py"
-	print "  (then write <cmd> to %s, where <cmd> is one of %s)" % (
-		fifo_name, sorted(AVR_Commands.keys()))
+	print "  avr_control.py [-D <serial_port>]"
+	print
+	print "  Then write any of the following commands to %s:" % (fifo_name)
+	for cmd in sorted(AVR_Map.keys()):
+		print "    %s" % (cmd)
+	return 1
 
 
 def main(args):
@@ -61,7 +66,7 @@ def main(args):
 		args = args[2:]
 
 	if args:
-		usage("Unknown arg(s): '%s'" % (" ".join(args)))
+		return usage("Unknown arg(s): '%s'" % (" ".join(args)))
 
 	fifo_fd = create_fifo()
 	conn = AVR_Connection(avr_tty)
