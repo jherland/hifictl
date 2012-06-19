@@ -1,7 +1,9 @@
 #!/usr/bin/env python2
 
 """
-Receive commands for controlling the AVR on a FIFO.
+Receive commands for controlling the HDMI switch and AVR on a FIFO.
+
+Forward commands to the HDMI switch which is connected to a serial port.
 
 Receive status updates from AVR connected on a serial port.
 Forward commands to AVR over the serial port.
@@ -13,6 +15,7 @@ import os
 import time
 import atexit
 
+from hdmi_switch import HDMI_Switch
 from avr_conn import AVR_Connection
 from avr_status import AVR_Status
 from avr_command import AVR_Command
@@ -20,8 +23,20 @@ from avr_command import AVR_Command
 # Connection point to clients that want to control the AVR
 fifo_name = "/tmp/avr_control"
 
+# Where the HDMI switch is connected
+HDMI_tty = "/dev/ttyUSB0"
+
 # Where the AVR itself is connected
-avr_tty = "/dev/ttyUSB1"
+AVR_tty = "/dev/ttyUSB1"
+
+# Map FIFO command to corresponding HDMI command
+HDMI_Map = {
+	"hdmi0": "off",
+	"hdmi1": "1",
+	"hdmi2": "2",
+	"hdmi3": "3",
+	"hdmi4": "4",
+}
 
 # Map FIFO command to corresponding AVR command
 AVR_Map = {
@@ -52,7 +67,7 @@ def create_fifo():
 def usage(msg):
 	print msg + ":"
 	print "Usage:"
-	print "  avr_control.py [-D <serial_port>]"
+	print "  avr_control.py [--hdmi <serial_port>] [--avr <serial_port>]"
 	print
 	print "  Then write any of the following commands to %s:" % (fifo_name)
 	for cmd in sorted(AVR_Map.keys()):
@@ -60,16 +75,20 @@ def usage(msg):
 	return 1
 
 
-def main(args):
-	if len(args) >= 2 and args[0] == "-D":
-		avr_tty = args[1]
+def main(args, HDMI_tty = HDMI_tty, AVR_tty = AVR_tty):
+	if len(args) >= 2 and args[0] == "--hdmi":
+		HDMI_tty = args[1]
+		args = args[2:]
+	if len(args) >= 2 and args[0] == "--avr":
+		AVR_tty = args[1]
 		args = args[2:]
 
 	if args:
 		return usage("Unknown arg(s): '%s'" % (" ".join(args)))
 
 	fifo_fd = create_fifo()
-	conn = AVR_Connection(avr_tty)
+	hdmi = HDMI_Switch(HDMI_tty)
+	avr = AVR_Connection(AVR_tty)
 
 	prev_dgram = None
 	fifo_input = ""
@@ -79,11 +98,13 @@ def main(args):
 		cmds = fifo_input.split("\n")
 		fifo_input = cmds.pop()
 		for cmd in cmds:
-			if cmd not in AVR_Map:
-				print "Unknown command '%s'" % (cmd)
+			if cmd in HDMI_Map:
+				hdmi.send_command(HDMI_Map[cmd])
+			elif cmd in AVR_Map:
+				avr.send_dgram(AVR_Command(AVR_Map[cmd]).dgram())
 			else:
-				conn.send_dgram(AVR_Command(AVR_Map[cmd]).dgram())
-		dgram = conn.write_and_recv()
+				print "Unknown command '%s'" % (cmd)
+		dgram = avr.write_and_recv()
 		if dgram == prev_dgram:
 			continue # Skip if unchanged
 		prev_dgram = dgram
@@ -94,7 +115,7 @@ def main(args):
 		print "%s (period: %f seconds)" % (status, now - ts)
 		ts = now
 
-	conn.close()
+	avr.close()
 	os.close(fifo_fd)
 	return 0
 
