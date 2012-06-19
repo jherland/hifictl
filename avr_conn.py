@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import Queue
+import serial
 
 
 class AVR_Connection(object):
@@ -88,8 +89,11 @@ class AVR_Connection(object):
 		return dgram_start + chr(dgram_type) + chr(dgram_len) \
 			+ data + cls.calc_cksum(data)
 
-	def __init__(self, f):
-		self.f = f
+	def __init__(self, tty = "/dev/ttyUSB0", baudrate = 38400):
+		# It seems pyserial needs the rtscts flag toggled in
+		# order to communicate consistently with the remote end.
+		self.f = serial.Serial(tty, baudrate, rtscts = True)
+		self.f.rtscts = False
 
 		# Receive AVR->PC status info datagrams
 		self.recv_dgram_spec = ("MPSEND", 3, 48)

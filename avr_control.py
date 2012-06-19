@@ -12,7 +12,6 @@ Keep as little local state as possible
 import os
 import time
 import atexit
-import serial
 
 from avr_conn import AVR_Connection
 from avr_status import AVR_Status
@@ -21,7 +20,6 @@ from avr_command import AVR_Command
 fifo_name = "/tmp/avr_control"
 
 avr_tty = "/dev/ttyUSB1"
-avr_baudrate = 38400
 
 # Map FIFO command to corresponding AVR command
 AVR_Map = {
@@ -65,13 +63,8 @@ def main(args):
 	if args:
 		usage("Unknown arg(s): '%s'" % (" ".join(args)))
 
-	# It seems pyserial needs the rtscts flag toggled in
-	# order to communicate consistently with the remote end.
-	f = serial.Serial(avr_tty, avr_baudrate, rtscts = True)
-	f.rtscts = False
-
 	fifo_fd = create_fifo()
-	conn = AVR_Connection(f)
+	conn = AVR_Connection(avr_tty)
 
 	prev_dgram = None
 	fifo_input = ""
