@@ -2,44 +2,68 @@
 
 import serial
 
-serial_device = "/dev/ttyUSB0"
-serial_baudrate = 19200
 
-lf = "\n\r"
+class HDMI_Switch(object):
+	"""Simple wrapper for sending commands to a HDMI switch.
 
-commands = {
-	"1":   lf + "1" + lf,
-	"2":   lf + "2" + lf,
-	"3":   lf + "3" + lf,
-	"4":   lf + "4" + lf,
-	"on":  lf + "5" + lf,
-	"off": lf + "5" + lf,
-#	"ver": lf + "v" + lf,
-}
+	Encapsulate RS-232 commands being sent to a Marmitek Connect411 HDMI
+	switch connected to a serial port.
+	"""
 
-def usage(msg):
-	print msg + ":"
-	print "Usage:"
-	print "  hdmi_switch.py <cmd>"
-	print "  (where <cmd> is one of %s)" % (sorted(commands.keys()))
+	LF = "\n\r"
+
+	Commands = {
+		"1":       LF + "1" + LF,
+		"2":       LF + "2" + LF,
+		"3":       LF + "3" + LF,
+		"4":       LF + "4" + LF,
+		"on":      LF + "5" + LF,
+		"off":     LF + "5" + LF,
+		"version": LF + "v" + LF,
+		"help":    LF + "?" + LF,
+	}
+
+	def __init__(self, serial_port = "/dev/ttyUSB0", baudrate = 19200):
+		# It seems pyserial needs the rtscts flag toggled in order to
+		# communicate consistently with the remote end.
+		self.ser = serial.Serial(serial_port, baudrate, rtscts = True)
+		self.ser.rtscts = False
+		self.ser.timeout = 0.2 # Read timeout
+
+	def send_command(self, cmd):
+		assert cmd in self.Commands
+		written = self.ser.write(self.Commands[cmd])
+		assert written == len(self.Commands[cmd])
+		return self.ser.read(1024)
+
+	def on(self):
+		return self._send_command("on")
+
+	def off(self):
+		return self._send_command("off")
+
+	def switch(self, port):
+		assert port in ("1", "2", "3", "4")
+		return self._send_command(port)
+
+	def version(self):
+		return self._send_command("version")
+
+	def help(self):
+		return self._send_command("help")
+
 
 def main(args):
-	if not len(args) == 1:
-		return usage("Wrong number of args")
-	cmd = args[0]
-	if cmd not in commands:
-		return usage("Unknown command '%s'" % (cmd))
+	if not args:
+		args = ["version"]
 
-	# It seems pyserial needs the rtscts flag toggled in order to
-	# communicate consistently with the remote end.
-	ser = serial.Serial(serial_device, serial_baudrate, rtscts = True)
-	ser.rtscts = False
+	hs = HDMI_Switch()
+	for arg in args:
+		print "Sending command '%s' to HDMI switch" % (arg)
+		print hs.send_command(arg)
 
-	written = ser.write(commands[cmd])
-	assert written == len(commands[cmd])
-
-	ser.close()
 	return 0
+
 
 if __name__ == '__main__':
 	import sys
