@@ -11,6 +11,7 @@ Forward commands to AVR over the serial port.
 Keep as little local state as possible
 """
 
+import sys
 import os
 import time
 import atexit
@@ -22,7 +23,7 @@ from avr_command import AVR_Command
 
 
 # Connection point to clients that want to control the AVR
-fifo_name = "/tmp/avr_control"
+fifo_name = "/tmp/av_control"
 
 # Where the HDMI switch is connected
 HDMI_tty = "/dev/ttyUSB0"
@@ -69,7 +70,7 @@ def create_fifo():
 def usage(msg):
 	print msg + ":"
 	print "Usage:"
-	print "  avr_control.py [--hdmi <serial_port>] [--avr <serial_port>]"
+	print "  %s [--hdmi <serial_port>] [--avr <serial_port>]" % (sys.argv[0])
 	print
 	print "  Then write any of the following commands to %s:" % (fifo_name)
 	for cmd in sorted(AVR_Map.keys()):
@@ -123,5 +124,4 @@ def main(args, HDMI_tty = HDMI_tty, AVR_tty = AVR_tty):
 
 
 if __name__ == '__main__':
-	import sys
 	sys.exit(main(sys.argv[1:]))

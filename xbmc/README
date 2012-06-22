@@ -4,6 +4,6 @@ Files for making stuff work right in XBMC
     - Maps XBMC keys to addon actions
     - Add a symlink to this file from within XBMC's userdata/keymaps directory
 
- - script.avr-control-client
-    - Addon for forwarding XBMC events to an external AVR Controller
+ - script.av-control-client
+    - Addon for forwarding XBMC events to an external A/V Controller
     - Add a symlink to this directory from within XBMC's addon directory

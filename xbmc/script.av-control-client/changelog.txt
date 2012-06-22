@@ -1,5 +1,8 @@
 [B]Todo:[/B]
 - Extend command mapping as needed
+
+[B]Version 0.2 (Alpha)[/B]
+- Use /tmp/av_control instead of /tmp/avr_control
 - Enable sending HDMI switch signals to appropriate server
 
 [B]Version 0.1 (Alpha)[/B]

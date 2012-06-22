@@ -87,7 +87,7 @@ class Fake_AVR(object):
 
 def main(args):
 	master, slave = pty.openpty()
-	print "You can now start ./avr_control.py --avr %s" % (os.ttyname(slave))
+	print "You can now start ./av_control.py --avr %s" % (os.ttyname(slave))
 
 	# Close the slave descriptor. It will be reopened by the client
 	os.close(slave)
