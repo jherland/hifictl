@@ -9,13 +9,13 @@ import sys
 avr_fifo = "/tmp/avr_control"
 
 cmd_map = {
-	"VolumeUp":    "volume change +1",
-	"VolumeDown":  "volume change -1",
-	"Mute":        "mute toggle",
-#	"HDMI1":       ???,
-#	"HDMI2":       ???,
-#	"HDMI3":       ???,
-#	"HDMI4":       ???,
+	"VolumeUp":    "avr vol+",
+	"VolumeDown":  "avr vol-",
+	"Mute":        "avr mute",
+	"HDMI1":       "hdmi 1",
+	"HDMI2":       "hdmi 2",
+	"HDMI3":       "hdmi 3",
+	"HDMI4":       "hdmi 4",
 #	"SurroundOn":  "surround ???",
 }
 

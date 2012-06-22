@@ -20,6 +20,7 @@ from avr_conn import AVR_Connection
 from avr_status import AVR_Status
 from avr_command import AVR_Command
 
+
 # Connection point to clients that want to control the AVR
 fifo_name = "/tmp/avr_control"
 
@@ -31,21 +32,22 @@ AVR_tty = "/dev/ttyUSB1"
 
 # Map FIFO command to corresponding HDMI command
 HDMI_Map = {
-	"hdmi0": "off",
-	"hdmi1": "1",
-	"hdmi2": "2",
-	"hdmi3": "3",
-	"hdmi4": "4",
+	"hdmi off": "off",
+	"hdmi 1": "1",
+	"hdmi 2": "2",
+	"hdmi 3": "3",
+	"hdmi 4": "4",
 }
 
 # Map FIFO command to corresponding AVR command
 AVR_Map = {
-	"on":   "POWER ON",
-	"off":  "POWER OFF",
-	"mute": "MUTE",
-	"vol+": "VOL UP",
-	"vol-": "VOL DOWN",
+	"avr on":   "POWER ON",
+	"avr off":  "POWER OFF",
+	"avr mute": "MUTE",
+	"avr vol+": "VOL UP",
+	"avr vol-": "VOL DOWN",
 }
+
 
 def destroy_fifo():
 	try:
