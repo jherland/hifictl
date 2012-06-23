@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+import sys
 import serial
 import select
 
@@ -47,7 +48,7 @@ class HDMI_Switch(AV_Device):
 		self.epoll_events = select.EPOLLIN | select.EPOLLPRI \
 			| select.EPOLLERR | select.EPOLLHUP
 
-		self.write_ready = True
+		self._write_ready = True
 		self.write_queue = []
 
 	def register(self, epoll, cmd_dispatcher = None):
@@ -59,9 +60,19 @@ class HDMI_Switch(AV_Device):
 		ret = None
 		assert epoll == self.epoll
 		if events & select.EPOLLIN:
-			ret = self.handle_read(self.ser.read(1024), ts)
+			try:
+				ret = self.handle_read(ts)
+			except Exception as e:
+				self.debug(ts, "handle_read(): %s" % (e))
 		if events & select.EPOLLOUT:
-			self.handle_write(ts)
+			try:
+				if not self.handle_write(ts):
+					# Nothing more to write, reset eventmask
+					self.epoll.modify(self.ser.fileno(),
+						self.epoll_events)
+			except Exception as e:
+				self.debug(ts, "handle_write(): %s" % (e))
+
 		events &= ~(select.EPOLLIN | select.EPOLLOUT)
 		if events:
 			self.debug(ts, "Unhandled events: %u" % (events))
@@ -71,13 +82,15 @@ class HDMI_Switch(AV_Device):
 		if cmd not in self.Commands:
 			self.debug(ts, "Unknown command: '%s'" % (cmd))
 			return
-		self.debug(ts, "Adding '%s' to write queue..." % (cmd))
-		if not self.write_queue:
-			self.epoll.modify(self.ser.fileno(),
-			                  self.epoll_events | select.EPOLLOUT)
-		self.write_queue.append(self.Commands[cmd])
+		self.schedule_write(ts, self.Commands[cmd])
 
-	def handle_read(self, s, ts):
+	def ready_to_write(self, ts = 0, set_to = None):
+		if set_to is not None:
+			self._write_ready = set_to
+		return self._write_ready
+
+	def handle_read(self, ts):
+		s = self.ser.read(1024)
 		if s == self.Init_Input:
 			self.debug(ts, "started.")
 			self.on() # Trigger wake from standby
@@ -90,21 +103,28 @@ class HDMI_Switch(AV_Device):
 				self.human_readable(s)))
 
 		if s.endswith(">"):
-			self.write_ready = True
+			self.ready_to_write(ts, True)
 			self.debug(ts, "ready.")
 
 		return s.replace("\r", "").strip()
 
 	def handle_write(self, ts):
-		if not self.write_ready:
-			return
-		cmd = self.write_queue.pop(0)
-		written = self.ser.write(cmd)
-		assert written == len(cmd)
-		self.debug(ts, "Wrote command '%s'" % (self.human_readable(cmd)))
-		self.write_ready = False
+		if self.ready_to_write(ts) and self.write_queue:
+			data = self.write_queue.pop(0)
+			written = self.ser.write(data)
+			assert written == len(data)
+			self.ready_to_write(ts, False)
+			self.debug(ts, "Wrote %u bytes (%s)" % (written,
+				" ".join(["%02x" % (ord(b)) for b in data])))
+		return len(self.write_queue)
+
+	def schedule_write(self, ts, data):
+		self.debug(ts, "Adding %u bytes to write queue (%s)" % (
+			len(data), " ".join(["%02x" % (ord(b)) for b in data])))
 		if not self.write_queue:
-			self.epoll.modify(self.ser.fileno(), self.epoll_events)
+			self.epoll.modify(self.ser.fileno(),
+				self.epoll_events | select.EPOLLOUT)
+		self.write_queue.append(data)
 
 	def on(self):
 		self.handle_cmd("on")
@@ -124,27 +144,45 @@ class HDMI_Switch(AV_Device):
 
 
 def main(args):
-	if not args:
-		args = ["version"]
+	import os
+	import time
+
+	epoll = select.epoll()
 
 	hs = HDMI_Switch()
-	epoll = select.epoll()
 	hs.register(epoll)
+
+	# Forward commands from stdin to avr
+	epoll.register(sys.stdin.fileno(), select.EPOLLIN | select.EPOLLET)
+
 	for arg in args:
 		hs.handle_cmd(arg)
-	while hs.write_queue or not hs.write_ready:
-		for fd, events in epoll.poll():
-			assert fd == hs.ser.fileno()
-			data = hs.handle_events(epoll, events)
-			if data:
-				print data,
-				if not data.endswith(">"):
-					print
+
+	t_start = time.time()
+	ts = 0
+	try:
+		while True:
+			for fd, events in epoll.poll():
+				ts = time.time() - t_start
+				if fd == hs.ser.fileno():
+					data = hs.handle_events(epoll, events)
+					if data:
+						print data,
+						if not data.endswith(">"):
+							print
+				# Forward commands from stding to hdmi switch
+				elif fd == sys.stdin.fileno():
+					cmds = os.read(sys.stdin.fileno(), 1024)
+					for cmd in cmds.split("\n"):
+						cmd = cmd.strip()
+						if cmd:
+							hs.handle_cmd(cmd, ts)
+	except KeyboardInterrupt:
+		print "Aborted by user"
 
 	epoll.close()
 	return 0
 
 
 if __name__ == '__main__':
-	import sys
 	sys.exit(main(sys.argv[1:]))

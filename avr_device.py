@@ -1,10 +1,8 @@
 #!/usr/bin/env python2
 
 import sys
-import os
 import serial
 import select
-import time
 
 from av_device import AV_Device
 from avr_command import AVR_Command
@@ -23,11 +21,11 @@ class AVR_Device(AV_Device):
 
 	# Map A/V commands to corresponding AVR command
 	Commands = {
-		"on":   AVR_Command("POWER ON"),
-		"off":  AVR_Command("POWER OFF"),
-		"mute": AVR_Command("MUTE"),
-		"vol+": AVR_Command("VOL UP"),
-		"vol-": AVR_Command("VOL DOWN"),
+		"on":   "POWER ON",
+		"off":  "POWER OFF",
+		"mute": "MUTE",
+		"vol+": "VOL UP",
+		"vol-": "VOL DOWN",
 	}
 
 	def __init__(self, cmd_namespace = "avr",
@@ -44,7 +42,7 @@ class AVR_Device(AV_Device):
 		self.epoll_events = select.EPOLLIN | select.EPOLLPRI \
 			| select.EPOLLERR | select.EPOLLHUP
 
-		self.next_write = sys.maxint
+		self._next_write = sys.maxint
 		self.write_queue = []
 
 		self.status = None
@@ -55,23 +53,17 @@ class AVR_Device(AV_Device):
 		return self.ser.fileno()
 
 	def handle_events(self, epoll, events, ts = 0):
+		ret = None
 		assert epoll == self.epoll
 		if events & select.EPOLLIN:
 			try:
-				dgram = self.handle_read()
-				status = AVR_Status.from_dgram(dgram)
-				if status != self.status:
-					self.status = status
-					# Ready to receive next write in 0.2
-					# sec. (value found experimentally...)
-					self.next_write = ts + 0.2
-					self.debug(ts, status)
+				ret = self.handle_read(ts)
 			except Exception as e:
 				self.debug(ts, "handle_read(): %s" % (e))
-
 		if events & select.EPOLLOUT:
 			try:
 				if not self.handle_write(ts):
+					# Nothing more to write, reset eventmask
 					self.epoll.modify(self.ser.fileno(),
 						self.epoll_events)
 			except Exception as e:
@@ -80,51 +72,68 @@ class AVR_Device(AV_Device):
 		events &= ~(select.EPOLLIN | select.EPOLLOUT)
 		if events:
 			self.debug(ts, "Unhandled events: %u" % (events))
+		return ret
 
 	def handle_cmd(self, cmd, ts = 0):
 		if cmd not in self.Commands:
 			self.debug(ts, "Unknown command: '%s'" % (cmd))
 			return
-		self.debug(ts, "Adding '%s' to write queue..." % (cmd))
-		if not self.enqueue_dgram(self.Commands[cmd].dgram()):
-			self.epoll.modify(self.ser.fileno(),
-				self.epoll_events | select.EPOLLOUT)
+		avr_cmd = AVR_Command(self.Commands[cmd])
+		dgram_spec = AVR_Datagram.PC_AVR_Command
+		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
+		self.schedule_write(ts, dgram)
 
-	def handle_read(self, dgram_spec = None):
+	def ready_to_write(self, ts = 0, set_to = None):
+		if set_to is not None:
+			# set_to == False indicates that we've just written to
+			# the AVR. In that case, we should nominally delay the
+			# next write for about a second.
+			# set_to == True indicates that we've just received an
+			# updated status from the AVR. In that case, the AVR is
+			# nominally ready to receive the next write much faster,
+			# experiments show about 0.2 sec.
+			self._next_write = ts + (set_to and 0.2 or 1.0)
+		return ts > self._next_write
+
+	def handle_read(self, ts, dgram_spec = AVR_Datagram.AVR_PC_Status):
 		"""Attempt to read a datagram from the serial port."""
-		if dgram_spec is None:
-			dgram_spec = AVR_Datagram.AVR_PC_Status
 		dgram_len = AVR_Datagram.full_dgram_len(dgram_spec)
 		dgram = self.ser.read(dgram_len)
 		if len(dgram) != dgram_len:
 			raise ValueError("Incomplete datagram (got %u bytes, " \
 				"expected %u bytes)" % (len(dgram), dgram_len))
-		ret = AVR_Datagram.parse_dgram(dgram, dgram_spec)
-		return ret
+		data = AVR_Datagram.parse_dgram(dgram, dgram_spec)
+		status = AVR_Status.from_dgram(data)
+		if status != self.status:
+			self.status = status
+			self.ready_to_write(ts, True)
+			self.debug(ts, status)
+			return status
 
 	def handle_write(self, ts):
 		"""Attempt to write a datagram to the serial port."""
-		if self.write_queue and ts > self.next_write:
-			dgram = self.write_queue.pop(0)
-			written = self.ser.write(dgram)
-			assert written == len(dgram)
-			# Nominally wait 1 sec. before sending next write, but
-			# will be shortened if AVR status changes
-			# (see self.handle_events()).
-			self.next_write = ts + 1
-			self.debug(ts, "Wrote '%s'" % (" ".join(["%02x" % (ord(b)) for b in dgram]))) ### REMOVEME
+		if self.write_queue and self.ready_to_write(ts):
+			data = self.write_queue.pop(0)
+			written = self.ser.write(data)
+			assert written == len(data)
+			self.ready_to_write(ts, False)
+			self.debug(ts, "Wrote %u bytes (%s)" % (written,
+				" ".join(["%02x" % (ord(b)) for b in data])))
 		return len(self.write_queue)
 
-	def enqueue_dgram(self, data, dgram_spec = None):
-		"""Send the given data according to the given datagram spec."""
-		if dgram_spec is None:
-			dgram_spec = AVR_Datagram.PC_AVR_Command
-		dgram = AVR_Datagram.build_dgram(data, dgram_spec)
-		self.write_queue.append(dgram)
-		return len(self.write_queue) - 1
+	def schedule_write(self, ts, data):
+		self.debug(ts, "Adding %u bytes to write queue (%s)" % (
+			len(data), " ".join(["%02x" % (ord(b)) for b in data])))
+		if not self.write_queue:
+			self.epoll.modify(self.ser.fileno(),
+				self.epoll_events | select.EPOLLOUT)
+		self.write_queue.append(data)
 
 
 def main(args):
+	import os
+	import time
+
 	epoll = select.epoll()
 
 	avr = AVR_Device(tty = "/dev/ttyUSB1")
@@ -135,6 +144,7 @@ def main(args):
 
 	for arg in args:
 		avr.handle_cmd(arg)
+
 	t_start = time.time()
 	ts = 0
 	try:
