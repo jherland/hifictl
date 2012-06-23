@@ -116,5 +116,4 @@ class AVR_Command(object):
 		return "<AVR_Command: '%s'>" % (self.keyword)
 
 	def dgram(self):
-		print "Sending '%s' [%s]" % (self.keyword, " ".join("%02x" % (b) for b in self.Commands[self.keyword]))
 		return "".join(map(chr, self.Commands[self.keyword]))
