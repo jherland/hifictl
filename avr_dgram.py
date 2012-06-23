@@ -1,11 +1,14 @@
 #!/usr/bin/env python2
 
-import Queue
-import serial
 
+class AVR_Datagram(object):
+	"""Do low-level datagram en/decoding for the H/K AVR protocol."""
 
-class AVR_Connection(object):
-	"""Encapsulate the serial port communication to a Harman Kardon AVR."""
+	# Datagram "spec" for AVR->PC status updated
+	AVR_PC_Status = ("MPSEND", 3, 48)
+
+	# Datagram "spec" for PC->AVR remote control commands
+	PC_AVR_Command = ("PCSEND", 2, 4)
 
 	@staticmethod
 	def calc_cksum(data):
@@ -21,7 +24,7 @@ class AVR_Connection(object):
 
 	@staticmethod
 	def full_dgram_len(dgram_spec):
-		"""Return the total number of bytes in aa AVR datagram
+		"""Return the total number of bytes in an AVR datagram
 		following the given spec, including the protocol overhead.
 
 		The datagram is structured as follows:
@@ -88,73 +91,3 @@ class AVR_Connection(object):
 		assert len(data) == dgram_len, "Incorrect data length"
 		return dgram_start + chr(dgram_type) + chr(dgram_len) \
 			+ data + cls.calc_cksum(data)
-
-	def __init__(self, tty = "/dev/ttyUSB0", baudrate = 38400):
-		# It seems pyserial needs the rtscts flag toggled in
-		# order to communicate consistently with the remote end.
-		self.f = serial.Serial(tty, baudrate, rtscts = True)
-		self.f.rtscts = False
-
-		# Receive AVR->PC status info datagrams
-		self.recv_dgram_spec = ("MPSEND", 3, 48)
-		# Send PC->AVR remote control commands
-		self.send_dgram_spec = ("PCSEND", 2, 4)
-
-		self.write_queue = Queue.Queue()
-
-	def read_dgram(self, dgram_start, dgram_len):
-		"""Find the given start of the next datagram, and read the
-		given number of bytes starting from there.
-
-		Return the bytes read (== dgram_len).
-		"""
-		assert 1 <= len(dgram_start) < dgram_len
-		self.f.flush()
-		dgram = self.f.read(dgram_len)
-		while True:
-			i = dgram.find(dgram_start)
-			if i == 0:
-				# Datagram starts at beginning of dgram
-				assert(len(dgram) == dgram_len)
-				return dgram
-			elif i > 0:
-				# Datagram starts somewhere in the middle
-				assert i < dgram_len
-			else:
-				# Start of datagram not (fully) found in dgram
-				i = dgram_len + 1 - len(dgram_start)
-			# Read the remainder of the datagram
-			dgram = dgram[i:] + self.f.read(i)
-			# Retry finding the start of the datagram
-
-	def recv_dgram(self, dgram_spec = None):
-		"""Block until exactly one datagram of the given specification
-		has been received on this AVR connection. Return the data
-		portion of that datagram.
-
-		This method requires that self.f is in blocking mode.
-		"""
-		if dgram_spec is None:
-			dgram_spec = self.recv_dgram_spec
-		full_dgram_len = self.full_dgram_len(dgram_spec)
-		dgram = self.read_dgram(dgram_spec[0], full_dgram_len)
-		return self.parse_dgram(dgram, dgram_spec)
-
-	def send_dgram(self, data, dgram_spec = None):
-		"""Send the given data according to the given datagram spec."""
-		if dgram_spec is None:
-			dgram_spec = self.send_dgram_spec
-		dgram = self.build_dgram(data, dgram_spec)
-		self.write_queue.put(dgram)
-
-	def write_and_recv(self):
-		ret = self.recv_dgram()
-		if not self.write_queue.empty():
-			dgram = self.write_queue.get()
-			written = self.f.write(dgram)
-			assert written == len(dgram)
-			print "Wrote datagram '%s'" % (" ".join(["%02x" % (ord(b)) for b in dgram])) ### REMOVEME
-		return ret
-
-	def close(self):
-		self.f.close()
