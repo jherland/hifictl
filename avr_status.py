@@ -55,6 +55,20 @@ class AVR_Status(object):
 			self.line1, self.line2, self.source(), self.ch_string(),
 			self.surr_string(), self.spkr_string())
 
+	def __hash__(self):
+		return hash(self.line1) ^ hash(self.line2) ^ hash(self.icons)
+
+	def __eq__(self, other):
+		try:
+			return self.line1 == other.line1 \
+			   and self.line2 == other.line2 \
+			   and self.icons == other.icons
+		except:
+			return False
+
+	def __ne__(self, other):
+		return not self.__eq__(other)
+
 	def dgram(self):
 		"""Create a datagram containing AVR status info.
 
