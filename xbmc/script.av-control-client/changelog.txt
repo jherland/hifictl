@@ -1,5 +1,6 @@
-[B]Todo:[/B]
-- Extend command mapping as needed
+[B]Version 0.5 (Beta)[/B]
+- Remove command mapping entirely. Instead, specify A/V command directly as the
+  first (and only) argument to this script.
 
 [B]Version 0.2 (Alpha)[/B]
 - Use /tmp/av_control instead of /tmp/avr_control

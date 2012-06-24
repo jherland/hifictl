@@ -1,19 +1,19 @@
 <keymap>
   <global>
     <keyboard>
-      <!-- Override XBMC's volume control by intercepting the volume buttons -->
-      <volume_up>XBMC.RunScript(script.av-control-client,VolumeUp)</volume_up>
-      <volume_down>XBMC.RunScript(script.av-control-client,VolumeDown)</volume_down>
-      <volume_mute>XBMC.RunScript(script.av-control-client,Mute)</volume_mute>
+      <!-- Override XBMC's volume control by intercepting the volume buttons on the Cideko keyboard -->
+      <volume_up>XBMC.RunScript(script.av-control-client,   avr vol+)</volume_up>
+      <volume_down>XBMC.RunScript(script.av-control-client, avr vol-)</volume_down>
+      <volume_mute>XBMC.RunScript(script.av-control-client, avr mute)</volume_mute>
 
-      <!-- Map some unused keys to manipulate the HDMI switcher -->
-      <browser_home>XBMC.RunScript(script.av-control-client,HDMI1)</browser_home>
-      <launch_mail>XBMC.RunScript(script.av-control-client,HDMI2)</launch_mail>
-      <leftwindows>XBMC.RunScript(script.av-control-client,HDMI3)</leftwindows>
-      <f mod="ctrl">XBMC.RunScript(script.av-control-client,HDMI4)</f>
+      <!-- Map some unused keys on the 2nd row of the Cideko keyboard to manipulate the HDMI switcher -->
+      <browser_home>XBMC.RunScript(script.av-control-client,        hdmi 1)</browser_home>
+      <launch_mail>XBMC.RunScript(script.av-control-client,         hdmi 2)</launch_mail>
+      <leftwindows>XBMC.RunScript(script.av-control-client,         hdmi 3)</leftwindows>
+      <f mod="ctrl">XBMC.RunScript(script.av-control-client,        hdmi 4)</f>
+      <launch_app2_pc_icon>XBMC.RunScript(script.av-control-client, hdmi off)</launch_app2_pc_icon>
 
-      <!-- Map the second last key on the 2nd row of the Cideko keyboard to surround mode switching -->
-      <launch_app2_pc_icon>XBMC.RunScript(script.av-control-client,SurroundNext)</launch_app2_pc_icon>
+      <!-- TODO: Map ??? to surround mode switching -->
     </keyboard>
   </global>
 </keymap>
