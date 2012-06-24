@@ -8,6 +8,7 @@ from av_serial_device import AV_SerialDevice
 from avr_command import AVR_Command
 from avr_dgram import AVR_Datagram
 from avr_status import AVR_Status
+from avr_state import AVR_State
 
 
 class AVR_Device(AV_SerialDevice):
@@ -34,7 +35,7 @@ class AVR_Device(AV_SerialDevice):
 
 		self._next_write = sys.maxint
 
-		self.status = None
+		self.state = AVR_State(self.handle_cmd)
 
 	def handle_cmd(self, cmd, ts = 0):
 		if cmd not in self.Commands:
@@ -66,8 +67,7 @@ class AVR_Device(AV_SerialDevice):
 				"expected %u bytes)" % (len(dgram), dgram_len))
 		data = AVR_Datagram.parse_dgram(dgram, dgram_spec)
 		status = AVR_Status.from_dgram(data)
-		if status != self.status:
-			self.status = status
+		if self.state.update(ts, status):
 			self.ready_to_write(ts, True)
 			self.debug(ts, status)
 			return status
