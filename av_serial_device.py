@@ -58,7 +58,7 @@ class AV_SerialDevice(AV_Device):
 		if events & select.EPOLLIN:
 			try:
 				ret = self.handle_read(ts)
-			except ValueError as e:
+			except Exception as e:
 				self.debug(ts, "handle_read(): %s" % (e))
 		if events & select.EPOLLOUT:
 			try:
