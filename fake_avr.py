@@ -6,7 +6,7 @@ import fcntl
 import termios
 import time
 
-from avr_conn import AVR_Connection
+from avr_dgram import AVR_Datagram
 from avr_status import AVR_Status
 from avr_command import AVR_Command
 
@@ -107,7 +107,7 @@ def main(args):
 	recv_data = "" # Receive buffer
 	recv_dgram_spec = ("PCSEND", 2, 4) # Receive PC->AVR remote commands
 	send_dgram_spec = ("MPSEND", 3, 48) # Send AVR->PC status updates
-	recv_dgram_len = AVR_Connection.full_dgram_len(recv_dgram_spec)
+	recv_dgram_len = AVR_Datagram.full_dgram_len(recv_dgram_spec)
 	try:
 		while True:
 			try:
@@ -119,11 +119,11 @@ def main(args):
 				dgram = recv_data[:recv_dgram_len]
 				recv_data = recv_data[recv_dgram_len:]
 				avr.handle_command(AVR_Command.from_dgram(
-					AVR_Connection.parse_dgram(
+					AVR_Datagram.parse_dgram(
 						dgram, recv_dgram_spec)))
 
 			time.sleep(0.05)
-			os.write(master, AVR_Connection.build_dgram(
+			os.write(master, AVR_Datagram.build_dgram(
 				avr.status().dgram(), send_dgram_spec))
 	except KeyboardInterrupt:
 		pass
