@@ -15,22 +15,6 @@ class AV_Device(object):
 
 	Debug = False
 
-	@staticmethod
-	def human_readable(s):
-		"""Convenience method for making byte strings human-readable.
-
-		Returns the given string with all non-human-readable chars
-		replaced by their respective hax code (formatted as \0x##).
-		"""
-		ret = ""
-		for c in s:
-			i = ord(c)
-			if i >= 0x20 and i < 0x7f:
-				ret += c
-			else:
-				ret += "\\0x%02x" % (ord(c))
-		return ret
-
 	def debug(self, ts, s):
 		"""Convenience method for debug output."""
 		if self.Debug:

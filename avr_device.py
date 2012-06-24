@@ -4,13 +4,13 @@ import sys
 import serial
 import select
 
-from av_device import AV_Device
+from av_serial_device import AV_SerialDevice
 from avr_command import AVR_Command
 from avr_dgram import AVR_Datagram
 from avr_status import AVR_Status
 
 
-class AVR_Device(AV_Device):
+class AVR_Device(AV_SerialDevice):
 	"""Simple wrapper for communicating with a Harman/Kardon AVR 430.
 
 	Encapsulate RS-232 traffic to/from the Harman/Kardon AVR 430 connected
@@ -30,49 +30,11 @@ class AVR_Device(AV_Device):
 
 	def __init__(self, cmd_namespace = "avr",
 	             tty = "/dev/ttyUSB0", baudrate = 38400):
-		AV_Device.__init__(self, cmd_namespace)
-
-		# It seems pyserial needs the rtscts flag toggled in
-		# order to communicate consistently with the remote end.
-		self.ser = serial.Serial(tty, baudrate, rtscts = True)
-		self.ser.rtscts = False
-		self.ser.timeout = 0 # Non-blocking reads
-
-		self.epoll = None
-		self.epoll_events = select.EPOLLIN | select.EPOLLPRI \
-			| select.EPOLLERR | select.EPOLLHUP
+		AV_SerialDevice.__init__(self, cmd_namespace, tty, baudrate)
 
 		self._next_write = sys.maxint
-		self.write_queue = []
 
 		self.status = None
-
-	def register(self, epoll, cmd_dispatcher = None):
-		self.epoll = epoll
-		self.epoll.register(self.ser.fileno(), self.epoll_events)
-		return self.ser.fileno()
-
-	def handle_events(self, epoll, events, ts = 0):
-		ret = None
-		assert epoll == self.epoll
-		if events & select.EPOLLIN:
-			try:
-				ret = self.handle_read(ts)
-			except Exception as e:
-				self.debug(ts, "handle_read(): %s" % (e))
-		if events & select.EPOLLOUT:
-			try:
-				if not self.handle_write(ts):
-					# Nothing more to write, reset eventmask
-					self.epoll.modify(self.ser.fileno(),
-						self.epoll_events)
-			except Exception as e:
-				self.debug(ts, "handle_write(): %s" % (e))
-
-		events &= ~(select.EPOLLIN | select.EPOLLOUT)
-		if events:
-			self.debug(ts, "Unhandled events: %u" % (events))
-		return ret
 
 	def handle_cmd(self, cmd, ts = 0):
 		if cmd not in self.Commands:
@@ -109,25 +71,6 @@ class AVR_Device(AV_Device):
 			self.ready_to_write(ts, True)
 			self.debug(ts, status)
 			return status
-
-	def handle_write(self, ts):
-		"""Attempt to write a datagram to the serial port."""
-		if self.write_queue and self.ready_to_write(ts):
-			data = self.write_queue.pop(0)
-			written = self.ser.write(data)
-			assert written == len(data)
-			self.ready_to_write(ts, False)
-			self.debug(ts, "Wrote %u bytes (%s)" % (written,
-				" ".join(["%02x" % (ord(b)) for b in data])))
-		return len(self.write_queue)
-
-	def schedule_write(self, ts, data):
-		self.debug(ts, "Adding %u bytes to write queue (%s)" % (
-			len(data), " ".join(["%02x" % (ord(b)) for b in data])))
-		if not self.write_queue:
-			self.epoll.modify(self.ser.fileno(),
-				self.epoll_events | select.EPOLLOUT)
-		self.write_queue.append(data)
 
 
 def main(args):
