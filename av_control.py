@@ -70,11 +70,13 @@ def main(args):
 		"""
 		ts = time.time() - t_start
 		print "cmd_dispatcher(%s)" % (cmd)
-		namespace, subcmd = cmd.split(" ", 1)
-		if namespace in devices:
+		try:
+			namespace, subcmd = cmd.split(" ", 1)
 			devices[namespace].handle_cmd(subcmd, ts)
-		else:
+		except KeyError:
 			print "Unknown namespace '%s'" % (namespace)
+		except ValueError:
+			print "Malformed command '%s'" % (cmd)
 
 	for dev in Devices:
 		try:
