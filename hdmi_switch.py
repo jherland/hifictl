@@ -55,7 +55,7 @@ class HDMI_Switch(AV_SerialDevice):
 		s = self.ser.read(1024)
 		if s == self.Init_Input:
 			self.debug(ts, "started.")
-			self.on() # Trigger wake from standby
+			self.handle_cmd("on", ts) # Trigger wake from standby
 		elif s == "\0":
 			self.debug(ts, "stopped.")
 		elif s.strip() in ("1", "2", "3", "4", "5", "v", "?"):
@@ -69,22 +69,6 @@ class HDMI_Switch(AV_SerialDevice):
 			self.debug(ts, "ready.")
 
 		return s.replace("\r", "").strip()
-
-	def on(self):
-		self.handle_cmd("on")
-
-	def off(self):
-		self.handle_cmd("off")
-
-	def switch(self, port):
-		assert port in ("1", "2", "3", "4")
-		self.handle_cmd(port)
-
-	def version(self):
-		self.handle_cmd("version")
-
-	def help(self):
-		self.handle_cmd("help")
 
 
 def main(args):
