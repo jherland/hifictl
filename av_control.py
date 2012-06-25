@@ -20,6 +20,7 @@ import argparse
 from hdmi_switch import HDMI_Switch
 from avr_device import AVR_Device
 from av_fifo import AV_FIFO
+from http_server import AV_HTTPServer
 
 
 Devices = (
@@ -40,6 +41,12 @@ Devices = (
 		'class':        AV_FIFO,
 		'default_path': "/tmp/av_control",
 		'path_help':    "Path to A/V command FIFO",
+	},
+	{
+		'name':         "http",
+		'class':        AV_HTTPServer,
+		'default_path': "./http",
+		'path_help':    "Path to static HTTP resources",
 	},
 )
 
@@ -77,6 +84,8 @@ def main(args):
 			print "Unknown namespace '%s'" % (namespace)
 		except ValueError:
 			print "Malformed command '%s'" % (cmd)
+		except NotImplementedError:
+			print "Rejected command '%s'" % (cmd)
 
 	for dev in Devices:
 		try:
