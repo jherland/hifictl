@@ -16,15 +16,19 @@ class AV_ReqHandler(BaseHTTPRequestHandler):
 		"/favicon.ico": "image/x-icon"
 	}
 
+	def send_content(self, data):
+		self.send_header("Content-Length", len(data))
+		self.end_headers()
+		self.wfile.write(data)
+
 	def do_static(self):
 		content_type = self.StaticPaths[self.path]
 
 		self.send_response(200)
 		self.send_header("Content-Type", content_type)
-		self.end_headers()
 
 		f = open(os.path.join(self.server.root, self.path.lstrip("/")))
-		self.wfile.write(f.read())
+		self.send_content(f.read())
 		f.close()
 
 	def do_GET(self):
@@ -37,11 +41,14 @@ class AV_ReqHandler(BaseHTTPRequestHandler):
 
 		# Send data back to the client
 		self.send_response(200)
-		self.send_header("Content-Type", "text/plain")
-		self.end_headers()
+		self.send_header("Content-Type", "text/html")
 
-		print >>self.wfile, self.server, self.server.cookie
-		print >>self.wfile, self.path, "->", cmd
+		lines = []
+		lines.append("<html><head></head><body>")
+		lines.append("<p>%s %s</p>" % (self.server, self.server.cookie))
+		lines.append("<p>%s -> %s</p>" % (self.path, cmd))
+		lines.append("</body></html>")
+		self.send_content("\n".join(lines))
 
 
 class AV_HTTPServer(HTTPServer, AV_Device):
