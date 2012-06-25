@@ -56,8 +56,10 @@ class AV_FIFO(AV_Device):
 def main(args):
 	fifo = AV_FIFO()
 	epoll = select.epoll()
+
 	def cmd_dispatcher(cmd):
 		print "cmd_dispatcher(%s)" % (cmd)
+
 	fifo.register(epoll, cmd_dispatcher)
 	print "Write commands to %s (Ctrl-C here to stop me)" % (fifo.path)
 	try:
