@@ -1,8 +1,6 @@
 #!/usr/bin/env python2
 
 import sys
-import serial
-import select
 
 from av_serial_device import AV_SerialDevice
 
@@ -34,82 +32,81 @@ class HDMI_Switch(AV_SerialDevice):
 	Init_Input = "Marmitek BV, The Netherlands. All rights reserved. " \
 	             "www.marmitek.com" + LF + ">"
 
-	def __init__(self, cmd_namespace = "hdmi",
-	             tty = "/dev/ttyUSB0", baudrate = 19200):
-		AV_SerialDevice.__init__(self, cmd_namespace, tty, baudrate)
+	def __init__(self, av_loop, name = "hdmi",
+			tty = "/dev/ttyUSB0", baudrate = 19200):
+		AV_SerialDevice.__init__(self, av_loop, name, tty, baudrate)
 
-		self._write_ready = True
+		self.input_handler = None
 
-	def handle_cmd(self, cmd, ts = 0):
-		if cmd not in self.Commands:
-			self.debug(ts, "Unknown command: '%s'" % (cmd))
-			return
-		self.schedule_write(ts, self.Commands[cmd])
+		self.av_loop.add_cmd_handler(self.name, self.handle_cmd)
 
-	def ready_to_write(self, ts = 0, set_to = None):
-		if set_to is not None:
-			self._write_ready = set_to
-		return self._write_ready
-
-	def handle_read(self, ts):
-		s = self.ser.read(1024)
+	def handle_read(self):
+		s = self.ser.read(64 * 1024)
 		if s == self.Init_Input:
-			self.debug(ts, "started.")
-			self.handle_cmd("on", ts) # Trigger wake from standby
+			self.debug("started.")
+			# Trigger wake from standby
+			self.handle_cmd(self.name, "on")
 		elif s == "\0":
-			self.debug(ts, "stopped.")
+			self.ready_to_write(False)
+			self.debug("stopped.")
 		elif s.strip() in ("1", "2", "3", "4", "5", "v", "?"):
-			self.debug(ts, "Executed command '%s'" % (s.strip()))
+			self.debug("Executed command '%s'" % (s.strip()))
 		elif s != ">":
-			self.debug(ts, "Unrecognized input: '%s'" % (
+			self.debug("Unrecognized input: '%s'" % (
 				self.human_readable(s)))
 
 		if s.endswith(">"):
-			self.ready_to_write(ts, True)
-			self.debug(ts, "ready.")
+			self.ready_to_write(True)
+			self.debug("ready.")
 
-		return s.replace("\r", "").strip()
+		if self.input_handler:
+			self.input_handler(s.replace("\r", "").strip())
+
+	def handle_cmd(self, namespace, cmd):
+		assert namespace == self.name
+		if cmd not in self.Commands:
+			self.debug("Unknown command: '%s'" % (cmd))
+			return
+		self.schedule_write(self.Commands[cmd])
 
 
 def main(args):
 	import os
-	import time
 
-	epoll = select.epoll()
+	from av_loop import AV_Loop
 
-	hs = HDMI_Switch()
-	hs.register(epoll)
+	mainloop = AV_Loop()
+
+	hdmi = HDMI_Switch(mainloop)
+
+	def print_serial_data(data):
+		if data:
+			print data,
+			if not data.endswith(">"):
+				print
+	hdmi.input_handler = print_serial_data
 
 	# Forward commands from stdin to avr
-	epoll.register(sys.stdin.fileno(), select.EPOLLIN | select.EPOLLET)
+	def handle_stdin(fd, events):
+		assert fd == sys.stdin.fileno()
+		assert events & mainloop.READ
+		cmds = os.read(sys.stdin.fileno(), 64 * 1024)
+		for cmd in cmds.split("\n"):
+			cmd = cmd.strip()
+			if cmd:
+				print " -> Received cmd '%s'" % (cmd)
+				mainloop.submit_cmd(cmd)
+	mainloop.add_handler(sys.stdin.fileno(), handle_stdin, mainloop.READ)
+
+	def cmd_dispatcher(namespace, subcmd):
+		print "*** Unknown command: '%s %s'" % (namespace, subcmd)
+	mainloop.add_cmd_handler("", cmd_dispatcher)
 
 	for arg in args:
-		hs.handle_cmd(arg)
+		mainloop.submit_cmd(arg)
 
-	t_start = time.time()
-	ts = 0
-	try:
-		while True:
-			for fd, events in epoll.poll():
-				ts = time.time() - t_start
-				if fd == hs.ser.fileno():
-					data = hs.handle_events(epoll, events)
-					if data:
-						print data,
-						if not data.endswith(">"):
-							print
-				# Forward commands from stding to hdmi switch
-				elif fd == sys.stdin.fileno():
-					cmds = os.read(sys.stdin.fileno(), 1024)
-					for cmd in cmds.split("\n"):
-						cmd = cmd.strip()
-						if cmd:
-							hs.handle_cmd(cmd, ts)
-	except KeyboardInterrupt:
-		print "Aborted by user"
-
-	epoll.close()
-	return 0
+	print "Write HDMI switch commands to stdin (Ctrl-C to stop me)"
+	return mainloop.run()
 
 
 if __name__ == '__main__':
