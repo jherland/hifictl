@@ -11,12 +11,20 @@ from av_device import AV_Device
 class AV_ReqHandler(BaseHTTPRequestHandler):
 
 	server_version = "AV_httpd/0.1"
+	protocol_version = "HTTP/1.0"
 
 	StaticPaths = {
 		"/favicon.ico": "image/x-icon"
 	}
 
+	# The following seems to be needed with Opera clients, because a
+	# successful request from Opera will be immediately followed by a
+	# new null-request, which blocks the read on the server socket for
+	# many seconds.
+	timeout = 0.01
+
 	def send_content(self, data):
+		self.send_header("Connection", "close")
 		self.send_header("Content-Length", len(data))
 		self.end_headers()
 		self.wfile.write(data)
@@ -47,6 +55,8 @@ class AV_ReqHandler(BaseHTTPRequestHandler):
 		lines.append("<html><head></head><body>")
 		lines.append("<p>%s %s</p>" % (self.server, self.server.cookie))
 		lines.append("<p>%s -> %s</p>" % (self.path, cmd))
+		lines.append("<p>%s</p>" % (self.request_version))
+		lines.append("<pre>%s</pre>" % (self.headers))
 		lines.append("</body></html>")
 		self.send_content("\n".join(lines))
 
