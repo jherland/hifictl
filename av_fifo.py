@@ -2,7 +2,6 @@
 
 import os
 import atexit
-import select
 
 from av_device import AV_Device
 
@@ -16,8 +15,8 @@ class AV_FIFO(AV_Device):
 
 	Description = "A/V command FIFO"
 
-	def __init__(self, cmd_namespace = "fifo", path = "/tmp/av_fifo"):
-		AV_Device.__init__(self, cmd_namespace)
+	def __init__(self, av_loop, name = "fifo", path = "/tmp/av_fifo"):
+		AV_Device.__init__(self, av_loop, name)
 
 		self.path = path
 		# Open FIFO for reading commands from clients
@@ -27,51 +26,60 @@ class AV_FIFO(AV_Device):
 					self.path, self.__class__.__name__))
 		os.mkfifo(self.path)
 		atexit.register(self.destroy)
+
+		self.fd = -1
+		self.open()
+
+	def open(self):
+		assert self.fd == -1
 		self.fd = os.open(self.path, os.O_RDONLY | os.O_NONBLOCK)
-		self.f = os.fdopen(self.fd, "r")
+		self.av_loop.add_handler(self.fd, self.handle_io,
+			self.av_loop.READ)
+
+	def close(self):
+		assert self.fd >= 0
+		self.av_loop.remove_handler(self.fd)
+		os.close(self.fd)
+		self.fd = -1
 
 	def destroy(self):
 		print "Bye!"
 		try:
 			os.remove(self.path)
+			self.close()
 		except:
 			pass
 
-	def register(self, epoll, cmd_dispatcher):
-		self.cmd_dispatcher = cmd_dispatcher
-		epoll.register(self.fd, select.EPOLLIN | select.EPOLLET)
-		return self.fd
-
-	def handle_events(self, epoll, events, ts = 0):
-		if not events & select.EPOLLIN:
-			return # Skip non-read events
-		cmds = self.f.read().split("\n")
-		for cmd in cmds:
-			cmd = cmd.strip()
-			if cmd:
-				self.debug(ts, "Received command '%s'" % (cmd))
-				self.cmd_dispatcher(cmd)
+	def handle_io(self, fd, events):
+		assert fd == self.fd
+		self.debug("handle_io(%i, %s)" % (fd, events))
+		if events & self.av_loop.READ:
+			cmds = os.read(self.fd, 64 * 1024).split("\n")
+			for cmd in cmds:
+				cmd = cmd.strip()
+				if cmd:
+					self.debug("recv cmd '%s'"  % (cmd))
+					self.av_loop.submit_cmd(cmd)
+		if events & self.av_loop.ERROR:
+			# Reopen fifo to allow further commands
+			self.close()
+			self.open()
 
 
 def main(args):
-	fifo = AV_FIFO()
-	epoll = select.epoll()
+	from av_loop import AV_Loop
 
-	def cmd_dispatcher(cmd):
-		print "cmd_dispatcher(%s)" % (cmd)
+	mainloop = AV_Loop()
 
-	fifo.register(epoll, cmd_dispatcher)
+	fifo = AV_FIFO(mainloop)
+
+	def cmd_dispatcher(namespace, subcmd):
+		print " -> cmd_dispatcher(%s, %s)" % (namespace, subcmd)
+
+	mainloop.add_cmd_handler("", cmd_dispatcher)
+
 	print "Write commands to %s (Ctrl-C here to stop me)" % (fifo.path)
-	try:
-		while True:
-			for fd, events in epoll.poll():
-				assert fd == fifo.fd
-				fifo.handle_events(epoll, events)
-	except KeyboardInterrupt:
-		print "Aborted by user"
-
-	epoll.close()
-	return 0
+	return mainloop.run()
 
 
 if __name__ == '__main__':
