@@ -1,8 +1,7 @@
 #!/usr/bin/env python2
 
 import sys
-import serial
-import select
+import time
 
 from av_serial_device import AV_SerialDevice
 from avr_command import AVR_Command
@@ -29,36 +28,57 @@ class AVR_Device(AV_SerialDevice):
 		"vol-": "VOL DOWN",
 	}
 
-	def __init__(self, cmd_namespace = "avr",
-	             tty = "/dev/ttyUSB0", baudrate = 38400):
-		AV_SerialDevice.__init__(self, cmd_namespace, tty, baudrate)
+	def __init__(self, av_loop, name = "avr",
+			tty = "/dev/ttyUSB0", baudrate = 38400):
+		AV_SerialDevice.__init__(self, av_loop, name, tty, baudrate)
 
-		self._next_write = sys.maxint
+		self.av_loop.add_cmd_handler(self.name, self.handle_cmd)
 
-		self.state = AVR_State(self.handle_cmd)
+		self.status_handler = None
 
-	def handle_cmd(self, cmd, ts = 0):
-		if cmd not in self.Commands:
-			self.debug(ts, "Unknown command: '%s'" % (cmd))
-			return
-		avr_cmd = AVR_Command(self.Commands[cmd])
-		dgram_spec = AVR_Datagram.PC_AVR_Command
-		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
-		self.schedule_write(ts, dgram)
+		# Don't start writing until a status update is received.
+		self.write_ready = False
 
-	def ready_to_write(self, ts = 0, set_to = None):
-		if set_to is not None:
-			# set_to == False indicates that we've just written to
-			# the AVR. In that case, we should nominally delay the
-			# next write for about a second.
-			# set_to == True indicates that we've just received an
-			# updated status from the AVR. In that case, the AVR is
-			# nominally ready to receive the next write much faster,
-			# experiments show about 0.2 sec.
-			self._next_write = ts + (set_to and 0.2 or 1.0)
-		return ts > self._next_write
+		# Write enabling needs to be delayed. See ready_to_write()
+		self.write_timer = None # or (timeout_handle, deadline)
 
-	def handle_read(self, ts, dgram_spec = AVR_Datagram.AVR_PC_Status):
+		self.state = AVR_State(self.name, self.handle_cmd)
+
+	def _delayed_ready(self):
+		self.write_timer = None
+		AV_SerialDevice.ready_to_write(self, True)
+
+	def _setup_write_timer(self, deadline):
+		if self.write_timer: # Disable existing timer
+			self.av_loop.remove_timeout(self.write_timer[0])
+		self.write_timer = (
+			self.av_loop.add_timeout(deadline, self._delayed_ready),
+			deadline)
+
+	def ready_to_write(self, set_to = None):
+		if set_to is None:
+			return AV_SerialDevice.ready_to_write(self)
+
+		# set_to == False indicates that we've just written to the AVR.
+		# In that case, we should nominally delay the next write for
+		# about 1.0s.
+		#
+		# set_to == True indicates that we've just received an updated
+		# status from the AVR. In that case, we can reduce the
+		# remaining time-to-next-write down to about 0.2s
+		# (value determined by unscientific experiments)
+		deadline = time.time() + (set_to and 0.2 or 1.0)
+		if set_to == False: # Disable writes for 1.0s
+			self.write_ready = False # Disable writes immediately
+			self._setup_write_timer(deadline)
+		elif set_to == True: # Shorten write_timeout to 0.2s
+			if self.write_timer and deadline > self.write_timer[1]:
+				pass # Keep current timer
+			elif self.write_timer or not self.write_ready:
+				# Shorten existing timer or setup new timer
+				self._setup_write_timer(deadline)
+
+	def handle_read(self, dgram_spec = AVR_Datagram.AVR_PC_Status):
 		"""Attempt to read a datagram from the serial port."""
 		dgram_len = AVR_Datagram.full_dgram_len(dgram_spec)
 		dgram = self.ser.read(dgram_len)
@@ -67,47 +87,53 @@ class AVR_Device(AV_SerialDevice):
 				"expected %u bytes)" % (len(dgram), dgram_len))
 		data = AVR_Datagram.parse_dgram(dgram, dgram_spec)
 		status = AVR_Status.from_dgram(data)
-		if self.state.update(ts, status):
-			self.ready_to_write(ts, True)
-			self.debug(ts, status)
-			return status
+		if self.state.update(time.time() - self.av_loop.t0, status):
+			self.debug(status)
+			if self.status_handler:
+				self.status_handler(status)
+			self.ready_to_write(True)
+
+	def handle_cmd(self, namespace, cmd):
+		assert namespace == self.name
+		if cmd not in self.Commands:
+			self.debug("Unknown command: '%s'" % (cmd))
+			return
+		avr_cmd = AVR_Command(self.Commands[cmd])
+		dgram_spec = AVR_Datagram.PC_AVR_Command
+		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
+		self.schedule_write(dgram)
 
 
 def main(args):
 	import os
-	import time
 
-	epoll = select.epoll()
+	from av_loop import AV_Loop
 
-	avr = AVR_Device(tty = "/dev/ttyUSB1")
-	avr.register(epoll)
+	mainloop = AV_Loop()
+
+	avr = AVR_Device(mainloop, tty = "/dev/ttyUSB1")
 
 	# Forward commands from stdin to avr
-	epoll.register(sys.stdin.fileno(), select.EPOLLIN | select.EPOLLET)
+	def handle_stdin(fd, events):
+		assert fd == sys.stdin.fileno()
+		assert events & mainloop.READ
+		cmds = os.read(sys.stdin.fileno(), 64 * 1024)
+		for cmd in cmds.split("\n"):
+			cmd = cmd.strip()
+			if cmd:
+				print " -> Received cmd '%s'" % (cmd)
+				mainloop.submit_cmd(cmd)
+	mainloop.add_handler(sys.stdin.fileno(), handle_stdin, mainloop.READ)
+
+	def cmd_dispatcher(namespace, subcmd):
+		print "*** Unknown command: '%s %s'" % (namespace, subcmd)
+	mainloop.add_cmd_handler("", cmd_dispatcher)
 
 	for arg in args:
-		avr.handle_cmd(arg)
+		mainloop.submit_cmd(arg)
 
-	t_start = time.time()
-	ts = 0
-	try:
-		while True:
-			for fd, events in epoll.poll():
-				ts = time.time() - t_start
-				if fd == avr.ser.fileno():
-					avr.handle_events(epoll, events, ts)
-				# Forward commands from stdin to avr
-				elif fd == sys.stdin.fileno():
-					cmds = os.read(sys.stdin.fileno(), 1024)
-					for cmd in cmds.split("\n"):
-						cmd = cmd.strip()
-						if cmd:
-							avr.handle_cmd(cmd, ts)
-	except KeyboardInterrupt:
-		print "Aborted by user"
-
-	epoll.close()
-	return 0
+	print "Write AVR commands to stdin (Ctrl-C to stop me)"
+	return mainloop.run()
 
 
 if __name__ == '__main__':

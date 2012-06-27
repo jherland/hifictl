@@ -4,7 +4,8 @@
 class AVR_State(object):
 	"""Encapsulate the current state of the Harman/Kardon AVR 430."""
 
-	def __init__(self, cmd_dispatch):
+	def __init__(self, namespace, cmd_dispatch):
+		self.namespace = namespace
 		self.cmd_dispatch = cmd_dispatch
 
 		self.last_ts = 0
@@ -12,8 +13,8 @@ class AVR_State(object):
 
 	def update(self, ts, status):
 		if self.off(ts) and status.standby():
-			# We just received power.
-			self.cmd_dispatch("on", ts) # Trigger wake from standby
+			# We just received power. Trigger wake from standby.
+			self.cmd_dispatch(self.namespace, "on")
 
 		ret = status != self.last_status
 		self.last_ts = ts
