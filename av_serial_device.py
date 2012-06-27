@@ -44,6 +44,7 @@ class AV_SerialDevice(AV_Device):
 
 		self.av_loop.add_handler(self.ser.fileno(), self.handle_io,
 			self.av_loop.READ)
+		self.check_writable = False
 
 	def handle_io(self, fd, events):
 		assert fd == self.ser.fileno()
@@ -71,10 +72,16 @@ class AV_SerialDevice(AV_Device):
 			self.write_ready = set_to
 
 		ret = self.write_ready and self.write_queue
-		eventmask = self.av_loop.READ
+
+		events = self.av_loop.READ
+		check_writable = False
 		if ret:
-			eventmask |= self.av_loop.WRITE
-		self.av_loop.update_handler(self.ser.fileno(), eventmask)
+			events |= self.av_loop.WRITE
+			check_writable = True
+
+		if check_writable != self.check_writable:
+			self.av_loop.update_handler(self.ser.fileno(), events)
+			self.check_writable = check_writable
 		return ret
 
 	def handle_read(self):
@@ -90,9 +97,9 @@ class AV_SerialDevice(AV_Device):
 			data = self.write_queue.pop(0)
 			written = self.ser.write(data)
 			assert written == len(data)
-			self.ready_to_write(False)
 			self.debug("Wrote %u bytes (%s)" % (written,
 				" ".join(["%02x" % (ord(b)) for b in data])))
+			self.ready_to_write(False)
 
 	def schedule_write(self, data):
 		self.debug("Adding %u bytes to write queue (%s)" % (len(data),
