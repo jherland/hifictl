@@ -21,6 +21,7 @@ from hdmi_switch import HDMI_Switch
 from avr_device import AVR_Device
 from av_fifo import AV_FIFO
 from http_server import AV_HTTPServer
+from av_loop import AV_Loop
 
 
 Devices = (
@@ -63,59 +64,32 @@ def main(args):
 
 	parsed_args = vars(parser.parse_args(args))
 
-	epoll = select.epoll()
-	t_start = time.time()
+	mainloop = AV_Loop()
 
-	devices = {} # Map device namespaces to AV_Device objects.
-	device_fds = {} # Map device fds to AV_Device objects.
+	devices = {} # Map device names to AV_Device objects.
 
-	def cmd_dispatcher(cmd):
-		"""Dispatch commands to their appropriate device handlers.
-
-		Parse command strings of the form "$namespace $subcmd...",
-		and pass "$subcmd..." on to the device named $namespace.
-		"""
-		ts = time.time() - t_start
-		print "cmd_dispatcher(%s)" % (cmd)
-		try:
-			namespace, subcmd = cmd.split(" ", 1)
-			devices[namespace].handle_cmd(subcmd, ts)
-		except KeyError:
-			print "Unknown namespace '%s'" % (namespace)
-		except ValueError:
-			print "Malformed command '%s'" % (cmd)
-		except NotImplementedError:
-			print "Rejected command '%s'" % (cmd)
+	def cmd_catch_all(namespace, cmd):
+		"""Handle commands that are not handled elsewhere."""
+		print "*** Unknown A/V command: '%s %s'" % (namespace, cmd)
+	mainloop.add_cmd_handler('', cmd_catch_all)
 
 	for dev in Devices:
 		try:
-			namespace = dev['name']
+			name = dev['name']
 			cls = dev['class']
 			print "*** Initializing %s..." % (cls.Description),
-			dev = cls(namespace, parsed_args[namespace])
-			dev_fd = dev.register(epoll, cmd_dispatcher)
-			devices[namespace] = dev
-			device_fds[dev_fd] = dev
+			dev = cls(mainloop, name, parsed_args[name])
+			devices[name] = dev
 			print "done"
 		except Exception as e:
 			print e
 
 	if not devices:
-		print "No devices found. Aborting..."
+		print "No A/V devices found. Aborting..."
 		return 1
 
-	print "Starting A/V controller main loop"
-	try:
-		while True:
-			for fd, events in epoll.poll():
-				ts = time.time() - t_start
-				assert fd in device_fds
-				device_fds[fd].handle_events(epoll, events, ts)
-	except KeyboardInterrupt:
-		print "Aborted by user"
-
-	epoll.close()
-	return 0
+	print "Starting A/V controller main loop."
+	return mainloop.run()
 
 
 if __name__ == '__main__':

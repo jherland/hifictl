@@ -22,8 +22,8 @@ class AV_HTTPServer(AV_Device, Application):
 
 	Debug = True ###
 
-	def __init__(self, av_loop, name = "http", address = ("", 8000),
-			static_root = "./http"):
+	def __init__(self, av_loop, name = "http", static_root = "./http",
+			address = ("", 8000)):
 		AV_Device.__init__(self, av_loop, name)
 		Application.__init__(self, [
 			(r"/static/(.*)",   StaticFileHandler,
