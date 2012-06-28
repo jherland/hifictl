@@ -75,7 +75,6 @@ def main(args):
 
 	def cmd_dispatcher(namespace, subcmd):
 		print " -> cmd_dispatcher(%s, %s)" % (namespace, subcmd)
-
 	mainloop.add_cmd_handler("", cmd_dispatcher)
 
 	print "Write commands to %s (Ctrl-C here to stop me)" % (fifo.path)
