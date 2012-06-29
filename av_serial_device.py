@@ -14,6 +14,10 @@ class AV_SerialDevice(AV_Device):
 
 	Description = "Unspecified A/V device connected to serial port"
 
+	DefaultTTY = "/dev/ttyUSB0"
+
+	DefaultBaudRate = 9600
+
 	@staticmethod
 	def human_readable(s):
 		"""Convenience method for making byte strings human-readable.
@@ -30,8 +34,24 @@ class AV_SerialDevice(AV_Device):
 				ret += "\\0x%02x" % (ord(c))
 		return ret
 
-	def __init__(self, av_loop, name, tty, baudrate):
+	@classmethod
+	def register_args(cls, name, arg_parser):
+		arg_parser.add_argument("--%s-tty" % (name),
+			default = cls.DefaultTTY,
+			help = "Path to serial port connected to %s"
+				" (default: %%(default)s)" % (cls.Description),
+			metavar = "TTY")
+		arg_parser.add_argument("--%s-baud" % (name),
+			default = cls.DefaultBaudRate,
+			help = "Serial port baud rate for %s"
+				" (default: %%(default)s)" % (cls.Description),
+			metavar = "BPS")
+
+	def __init__(self, av_loop, name):
 		AV_Device.__init__(self, av_loop, name)
+
+		tty = av_loop.args["%s_tty" % (name)]
+		baudrate = int(av_loop.args["%s_baud" % (name)])
 
 		# It seems pyserial needs the rtscts flag toggled in
 		# order to communicate consistently with the remote end.

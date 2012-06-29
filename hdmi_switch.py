@@ -14,6 +14,8 @@ class HDMI_Switch(AV_SerialDevice):
 
 	Description = "Marmitek Connect411 HDMI switch"
 
+	DefaultBaudRate = 19200
+
 	# Marmitek has strange newline conventions
 	LF = "\n\r"
 
@@ -32,9 +34,8 @@ class HDMI_Switch(AV_SerialDevice):
 	Init_Input = "Marmitek BV, The Netherlands. All rights reserved. " \
 	             "www.marmitek.com" + LF + ">"
 
-	def __init__(self, av_loop, name = "hdmi",
-			tty = "/dev/ttyUSB0", baudrate = 19200):
-		AV_SerialDevice.__init__(self, av_loop, name, tty, baudrate)
+	def __init__(self, av_loop, name):
+		AV_SerialDevice.__init__(self, av_loop, name)
 
 		self.input_handler = None
 
@@ -72,12 +73,16 @@ class HDMI_Switch(AV_SerialDevice):
 
 def main(args):
 	import os
+	import argparse
 
 	from av_loop import AV_Loop
 
-	mainloop = AV_Loop()
+	parser = argparse.ArgumentParser(
+		description = "Communicate with " + HDMI_Switch.Description)
+	HDMI_Switch.register_args("hdmi", parser)
 
-	hdmi = HDMI_Switch(mainloop)
+	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	hdmi = HDMI_Switch(mainloop, "hdmi")
 
 	def print_serial_data(data):
 		if data:

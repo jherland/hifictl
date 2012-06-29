@@ -19,6 +19,8 @@ class AVR_Device(AV_SerialDevice):
 
 	Description = "Harman/Kardon AVR 430"
 
+	DefaultBaudRate = 38400
+
 	# Map A/V commands to corresponding AVR command
 	Commands = {
 		"on":   "POWER ON",
@@ -28,9 +30,8 @@ class AVR_Device(AV_SerialDevice):
 		"vol-": "VOL DOWN",
 	}
 
-	def __init__(self, av_loop, name = "avr",
-			tty = "/dev/ttyUSB0", baudrate = 38400):
-		AV_SerialDevice.__init__(self, av_loop, name, tty, baudrate)
+	def __init__(self, av_loop, name):
+		AV_SerialDevice.__init__(self, av_loop, name)
 
 		self.av_loop.add_cmd_handler(self.name, self.handle_cmd)
 
@@ -106,12 +107,16 @@ class AVR_Device(AV_SerialDevice):
 
 def main(args):
 	import os
+	import argparse
 
 	from av_loop import AV_Loop
 
-	mainloop = AV_Loop()
+	parser = argparse.ArgumentParser(
+		description = "Communicate with " + AVR_Device.Description)
+	AVR_Device.register_args("avr", parser)
 
-	avr = AVR_Device(mainloop, tty = "/dev/ttyUSB1")
+	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	avr = AVR_Device(mainloop, "avr")
 
 	# Forward commands from stdin to avr
 	def handle_stdin(fd, events):

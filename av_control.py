@@ -25,47 +25,23 @@ from av_loop import AV_Loop
 
 
 Devices = (
-	{
-		'name':         "hdmi",
-		'class':        HDMI_Switch,
-		'default_path': "/dev/ttyUSB0",
-		'path_help':    "Path to tty connected to HDMI switch",
-	},
-	{
-		'name':         "avr",
-		'class':        AVR_Device,
-		'default_path': "/dev/ttyUSB1",
-		'path_help':    "Path to tty connected to AVR",
-	},
-	{
-		'name':         "fifo",
-		'class':        AV_FIFO,
-		'default_path': "/tmp/av_control",
-		'path_help':    "Path to A/V command FIFO",
-	},
-	{
-		'name':         "http",
-		'class':        AV_HTTPServer,
-		'default_path': "./http",
-		'path_help':    "Path to static HTTP resources",
-	},
+	("hdmi", HDMI_Switch),
+	("avr",  AVR_Device),
+	("fifo", AV_FIFO),
+	("http", AV_HTTPServer),
 )
+
+AVR_Device.DefaultTTY = "/dev/ttyUSB1"
+AV_FIFO.DefaultFIFOPath = "/tmp/av_control"
 
 
 def main(args):
 	parser = argparse.ArgumentParser(
 		description = "Controller daemon for A/V devices")
+	for name, cls in Devices:
+		cls.register_args(name, parser)
 
-	for dev in Devices:
-		parser.add_argument("--%s" % (dev['name']),
-			default = dev['default_path'],
-			help = "%s (default: %%(default)s)" % (dev['path_help']),
-			metavar = "PATH")
-
-	parsed_args = vars(parser.parse_args(args))
-
-	mainloop = AV_Loop()
-
+	mainloop = AV_Loop(vars(parser.parse_args(args)))
 	devices = {} # Map device names to AV_Device objects.
 
 	def cmd_catch_all(namespace, cmd):
@@ -73,12 +49,10 @@ def main(args):
 		print "*** Unknown A/V command: '%s %s'" % (namespace, cmd)
 	mainloop.add_cmd_handler('', cmd_catch_all)
 
-	for dev in Devices:
+	for name, cls in Devices:
 		try:
-			name = dev['name']
-			cls = dev['class']
 			print "*** Initializing %s..." % (cls.Description),
-			dev = cls(mainloop, name, parsed_args[name])
+			dev = cls(mainloop, name)
 			devices[name] = dev
 			print "done"
 		except Exception as e:

@@ -5,10 +5,11 @@ from tornado.ioloop import IOLoop
 
 class AV_Loop(IOLoop):
 	
-	def __init__(self):
+	def __init__(self, parsed_args):
 		IOLoop.__init__(self)
 		self.install()
 
+		self.args = parsed_args
 		self.t0 = time.time() # Keep track of when we started
 
 		self.cmd_handlers = {} # Map namespaces to command handlers

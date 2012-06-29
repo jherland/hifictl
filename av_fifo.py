@@ -15,10 +15,20 @@ class AV_FIFO(AV_Device):
 
 	Description = "A/V command FIFO"
 
-	def __init__(self, av_loop, name = "fifo", path = "/tmp/av_fifo"):
+	DefaultFIFOPath = "/tmp/av_fifo"
+
+	@classmethod
+	def register_args(cls, name, arg_parser):
+		arg_parser.add_argument("--%s" % (name),
+			default = cls.DefaultFIFOPath,
+			help = "Path to %s"
+				" (default: %%(default)s)" % (cls.Description),
+			metavar = "FIFO")
+
+	def __init__(self, av_loop, name):
 		AV_Device.__init__(self, av_loop, name)
 
-		self.path = path
+		self.path = av_loop.args[self.name]
 		# Open FIFO for reading commands from clients
 		if os.path.exists(self.path):
 			raise OSError(
@@ -67,11 +77,16 @@ class AV_FIFO(AV_Device):
 
 
 def main(args):
+	import argparse
+
 	from av_loop import AV_Loop
 
-	mainloop = AV_Loop()
+	parser = argparse.ArgumentParser(
+		description = "Communicate with " + AV_FIFO.Description)
+	AV_FIFO.register_args("fifo", parser)
 
-	fifo = AV_FIFO(mainloop)
+	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	fifo = AV_FIFO(mainloop, "fifo")
 
 	def cmd_dispatcher(namespace, subcmd):
 		print " -> cmd_dispatcher(%s, %s)" % (namespace, subcmd)
