@@ -1,14 +1,21 @@
 #!/usr/bin/env python2
 
 """
-Receive commands for controlling the HDMI switch and AVR on a FIFO.
+Manage I/O between a collection of A/V devices.
 
-Forward commands to the HDMI switch which is connected to a serial port.
+The A/V devices (and some not-so-A/V devices) are each represented by a class
+instance derived from the AV_Device API.
 
-Receive status updates from AVR connected on a serial port.
-Forward commands to AVR over the serial port.
+The A/V devices are controlled by an AV_Loop instance, which mediates
+communication and runtime between the instantiated devices.
 
-Keep as little local state as possible
+Devices may submit commands (strings of the form "$namespace $subcommand") to
+the AV_Loop, which then dispatches the command to the command handler registered
+for $namepace (or falls back to the empty ('') namespace command handler if
+no handler is registered for $namespace).
+
+Additionally, AV_Devices may register I/O handlers with the AV_Loop, which will
+then listen for I/O events on the given file descriptors.
 """
 
 import sys
