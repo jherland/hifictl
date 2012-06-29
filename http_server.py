@@ -20,8 +20,6 @@ class AV_HTTPServer(AV_Device, Application):
 
 	Description = "A/V controller HTTP server"
 
-	Debug = True ###
-
 	DefaultStaticRoot = "./http"
 
 	DefaultListenHost = ""
