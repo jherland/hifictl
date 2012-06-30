@@ -131,8 +131,9 @@ def main(args):
 				mainloop.submit_cmd(cmd)
 	mainloop.add_handler(sys.stdin.fileno(), handle_stdin, mainloop.READ)
 
-	def cmd_catch_all(cmd, rest):
-		print "*** Unknown command: '%s %s'" % (cmd, rest)
+	def cmd_catch_all(empty, cmd):
+		assert empty == ""
+		print "*** Unknown command: '%s'" % (cmd)
 	mainloop.add_cmd_handler("", cmd_catch_all)
 
 	for arg in args:

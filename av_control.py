@@ -62,11 +62,10 @@ def main(args):
 		print "No A/V commands registered. Aborting..."
 		return 1
 
-	def cmd_catch_all(cmd, rest):
+	def cmd_catch_all(empty, cmd):
 		"""Handle commands that are not handled elsewhere."""
-		if rest:
-			rest = " " + rest
-		print "*** Unknown A/V command: '%s%s'" % (cmd, rest)
+		assert empty == ""
+		print "*** Unknown A/V command: '%s'" % (cmd)
 	mainloop.add_cmd_handler("", cmd_catch_all)
 
 	print "Starting A/V controller main loop."
