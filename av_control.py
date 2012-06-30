@@ -49,7 +49,18 @@ def main(args):
 		cls.register_args(name, parser)
 
 	mainloop = AV_Loop(vars(parser.parse_args(args)))
-	devices = {} # Map device names to AV_Device objects.
+
+	for name, cls in Devices:
+		try:
+			print "*** Initializing %s..." % (cls.Description),
+			dev = cls(mainloop, name)
+			print "done"
+		except Exception as e:
+			print e
+
+	if not mainloop.cmd_handlers:
+		print "No A/V commands registered. Aborting..."
+		return 1
 
 	def cmd_catch_all(cmd, rest):
 		"""Handle commands that are not handled elsewhere."""
@@ -57,19 +68,6 @@ def main(args):
 			rest = " " + rest
 		print "*** Unknown A/V command: '%s%s'" % (cmd, rest)
 	mainloop.add_cmd_handler("", cmd_catch_all)
-
-	for name, cls in Devices:
-		try:
-			print "*** Initializing %s..." % (cls.Description),
-			dev = cls(mainloop, name)
-			devices[name] = dev
-			print "done"
-		except Exception as e:
-			print e
-
-	if not devices:
-		print "No A/V devices found. Aborting..."
-		return 1
 
 	print "Starting A/V controller main loop."
 	return mainloop.run()
