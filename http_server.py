@@ -8,14 +8,10 @@ from tornado.template import Loader
 from av_device import AV_Device
 
 
-class AV_CommandHandler(RequestHandler):
+class IndexHandler(RequestHandler):
 
 	def get(self, path):
 		app = self.application
-
-		# Turn self.path into an A/V command and submit it
-		cmd = path.strip("/").replace("/", " ")
-		app.av_loop.submit_cmd(cmd)
 
 		try:
 			avr_state = app.av_loop.devices["avr"].state
@@ -26,8 +22,19 @@ class AV_CommandHandler(RequestHandler):
 			title = app.Description,
 			avr_state = avr_state,
 			cmd_handlers = app.av_loop.cmd_handlers,
-			cmd = cmd,
+			cmd = self.get_argument("cmd", None),
 		))
+
+
+class AV_CommandHandler(RequestHandler):
+
+	def get(self, path):
+		# Turn self.path into an A/V command and submit it
+		cmd = path.strip("/").replace("/", " ")
+		self.application.av_loop.submit_cmd(cmd)
+
+		# Redirect back to index
+		self.redirect("/?cmd=%s" % (url_escape(cmd)))
 
 
 class AV_HTTPServer(AV_Device, Application):
@@ -65,6 +72,7 @@ class AV_HTTPServer(AV_Device, Application):
 				{"path": self.docroot}),
 			(r"/(favicon.ico)", StaticFileHandler,
 				{"path": self.docroot}),
+			(r"/(index.html)?", IndexHandler),
 			(r"/(.*)",          AV_CommandHandler),
 		], debug = self.Debug)
 
