@@ -14,7 +14,10 @@ class AV_CommandHandler(RequestHandler):
 		self.application.av_loop.submit_cmd(cmd)
 
 		self.write("<ul>\n")
-		for c in sorted(self.application.av_loop.cmd_handlers.iterkeys()):
+		cmd_handlers = self.application.av_loop.cmd_handlers
+		for c in sorted(cmd_handlers.iterkeys()):
+			if not c:
+				continue
 			self.write('<li><a href="/%s">%s</a></li>\n' % (
 				c.replace(" ", "/"), c))
 		self.write("</ul>\n")
