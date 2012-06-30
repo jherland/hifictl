@@ -53,7 +53,7 @@ def main(args):
 	for name, cls in Devices:
 		try:
 			print "*** Initializing %s..." % (cls.Description),
-			dev = cls(mainloop, name)
+			mainloop.add_device(name, cls(mainloop, name))
 			print "done"
 		except Exception as e:
 			print e

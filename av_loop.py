@@ -12,7 +12,13 @@ class AV_Loop(IOLoop):
 		self.args = parsed_args
 		self.t0 = time.time() # Keep track of when we started
 
+		self.devices = {} # Map device names to AV_Device objects
+
 		self.cmd_handlers = {} # Map commands to command handlers
+
+	def add_device(self, name, dev):
+		assert name not in self.devices
+		self.devices[name] = dev
 
 	def add_cmd_handler(self, cmd, handler):
 		"""Registers the given handler to receive the given A/V command.
