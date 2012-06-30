@@ -2,6 +2,7 @@
 
 import os
 from tornado.web import RequestHandler, Application, StaticFileHandler
+from tornado.escape import xhtml_escape
 
 from av_device import AV_Device
 
@@ -9,19 +10,32 @@ from av_device import AV_Device
 class AV_CommandHandler(RequestHandler):
 
 	def get(self, path):
+		av_loop = self.application.av_loop
+
 		# Turn self.path into an A/V command and submit it
 		cmd = path.strip("/").replace("/", " ")
-		self.application.av_loop.submit_cmd(cmd)
+		av_loop.submit_cmd(cmd)
+
+		self.write("<html>\n<title>%s</title>\n<body>\n" % (
+			self.application.Description))
+
+		try:
+			avr_state = av_loop.devices["avr"].state
+			self.write("<pre>%s</pre>\n" % (
+				xhtml_escape(str(avr_state))))
+		except KeyError:
+			pass
 
 		self.write("<ul>\n")
-		cmd_handlers = self.application.av_loop.cmd_handlers
-		for c in sorted(cmd_handlers.iterkeys()):
+		for c in sorted(av_loop.cmd_handlers.iterkeys()):
 			if not c:
 				continue
 			self.write('<li><a href="/%s">%s</a></li>\n' % (
 				c.replace(" ", "/"), c))
 		self.write("</ul>\n")
 		self.write("\n<p>Received command '%s'</p>\n" % (cmd))
+
+		self.write("</body>\n</html>\n")
 
 
 class AV_HTTPServer(AV_Device, Application):

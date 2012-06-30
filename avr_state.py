@@ -11,6 +11,9 @@ class AVR_State(object):
 		self.last_ts = 0
 		self.last_status = None
 
+	def __str__(self):
+		return str(self.last_status)
+
 	def update(self, ts, status):
 		if self.off(ts) and status.standby():
 			# We just received power. Trigger wake from standby.
