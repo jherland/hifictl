@@ -39,7 +39,9 @@ class HDMI_Switch(AV_SerialDevice):
 
 		self.input_handler = None
 
-		self.av_loop.add_cmd_handler(self.name, self.handle_cmd)
+		for subcmd in self.Commands:
+			self.av_loop.add_cmd_handler(
+				"%s %s" % (self.name, subcmd), self.handle_cmd)
 
 	def handle_read(self):
 		s = self.ser.read(64 * 1024)
@@ -63,11 +65,10 @@ class HDMI_Switch(AV_SerialDevice):
 		if self.input_handler:
 			self.input_handler(s.replace("\r", "").strip())
 
-	def handle_cmd(self, namespace, cmd):
-		assert namespace == self.name
-		if cmd not in self.Commands:
-			self.debug("Unknown command: '%s'" % (cmd))
-			return
+	def handle_cmd(self, cmd, rest):
+		cmd = cmd.split()
+		assert cmd[0] == self.name
+		assert len(cmd) == 2
 		self.schedule_write(self.Commands[cmd])
 
 
@@ -103,9 +104,9 @@ def main(args):
 				mainloop.submit_cmd(cmd)
 	mainloop.add_handler(sys.stdin.fileno(), handle_stdin, mainloop.READ)
 
-	def cmd_dispatcher(namespace, subcmd):
-		print "*** Unknown command: '%s %s'" % (namespace, subcmd)
-	mainloop.add_cmd_handler("", cmd_dispatcher)
+	def cmd_catch_all(cmd, rest):
+		print "*** Unknown command: '%s %s'" % (cmd, rest)
+	mainloop.add_cmd_handler("", cmd_catch_all)
 
 	for arg in args:
 		mainloop.submit_cmd(arg)

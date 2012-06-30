@@ -9,10 +9,10 @@ instance derived from the AV_Device API.
 The A/V devices are controlled by an AV_Loop instance, which mediates
 communication and runtime between the instantiated devices.
 
-Devices may submit commands (strings of the form "$namespace $subcommand") to
-the AV_Loop, which then dispatches the command to the command handler registered
-for $namepace (or falls back to the empty ('') namespace command handler if
-no handler is registered for $namespace).
+Devices may submit commands (strings) to the AV_Loop, which then dispatches the
+command to the command handler registered for that command (or falls back to
+the empty ('') catch-all command handler if no handler is registered for the
+given command).
 
 Additionally, AV_Devices may register I/O handlers with the AV_Loop, which will
 then listen for I/O events on the given file descriptors.
@@ -51,10 +51,12 @@ def main(args):
 	mainloop = AV_Loop(vars(parser.parse_args(args)))
 	devices = {} # Map device names to AV_Device objects.
 
-	def cmd_catch_all(namespace, cmd):
+	def cmd_catch_all(cmd, rest):
 		"""Handle commands that are not handled elsewhere."""
-		print "*** Unknown A/V command: '%s %s'" % (namespace, cmd)
-	mainloop.add_cmd_handler('', cmd_catch_all)
+		if rest:
+			rest = " " + rest
+		print "*** Unknown A/V command: '%s%s'" % (cmd, rest)
+	mainloop.add_cmd_handler("", cmd_catch_all)
 
 	for name, cls in Devices:
 		try:

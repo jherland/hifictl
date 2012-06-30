@@ -88,9 +88,9 @@ def main(args):
 	mainloop = AV_Loop(vars(parser.parse_args(args)))
 	fifo = AV_FIFO(mainloop, "fifo")
 
-	def cmd_dispatcher(namespace, subcmd):
-		print " -> cmd_dispatcher(%s, %s)" % (namespace, subcmd)
-	mainloop.add_cmd_handler("", cmd_dispatcher)
+	def cmd_catch_all(cmd, rest):
+		print " -> cmd_catch_all(%s, %s)" % (cmd, rest)
+	mainloop.add_cmd_handler("", cmd_catch_all)
 
 	print "Write commands to %s (Ctrl-C here to stop me)" % (fifo.path)
 	return mainloop.run()

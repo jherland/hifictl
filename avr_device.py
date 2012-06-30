@@ -33,7 +33,9 @@ class AVR_Device(AV_SerialDevice):
 	def __init__(self, av_loop, name):
 		AV_SerialDevice.__init__(self, av_loop, name)
 
-		self.av_loop.add_cmd_handler(self.name, self.handle_cmd)
+		for subcmd in self.Commands:
+			self.av_loop.add_cmd_handler(
+				"%s %s" % (self.name, subcmd), self.handle_cmd)
 
 		self.status_handler = None
 
@@ -94,12 +96,11 @@ class AVR_Device(AV_SerialDevice):
 				self.status_handler(status)
 			self.ready_to_write(True)
 
-	def handle_cmd(self, namespace, cmd):
-		assert namespace == self.name
-		if cmd not in self.Commands:
-			self.debug("Unknown command: '%s'" % (cmd))
-			return
-		avr_cmd = AVR_Command(self.Commands[cmd])
+	def handle_cmd(self, cmd, rest):
+		cmd = cmd.split()
+		assert cmd[0] == self.name
+		assert len(cmd) == 2
+		avr_cmd = AVR_Command(self.Commands[cmd[1]])
 		dgram_spec = AVR_Datagram.PC_AVR_Command
 		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
 		self.schedule_write(dgram)
@@ -130,9 +131,9 @@ def main(args):
 				mainloop.submit_cmd(cmd)
 	mainloop.add_handler(sys.stdin.fileno(), handle_stdin, mainloop.READ)
 
-	def cmd_dispatcher(namespace, subcmd):
-		print "*** Unknown command: '%s %s'" % (namespace, subcmd)
-	mainloop.add_cmd_handler("", cmd_dispatcher)
+	def cmd_catch_all(cmd, rest):
+		print "*** Unknown command: '%s %s'" % (cmd, rest)
+	mainloop.add_cmd_handler("", cmd_catch_all)
 
 	for arg in args:
 		mainloop.submit_cmd(arg)
