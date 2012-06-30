@@ -2,7 +2,7 @@
 
 import os
 from tornado.web import RequestHandler, Application, StaticFileHandler
-from tornado.escape import xhtml_escape
+from tornado.escape import xhtml_escape, url_escape
 
 from av_device import AV_Device
 
@@ -31,7 +31,7 @@ class AV_CommandHandler(RequestHandler):
 			if not c:
 				continue
 			self.write('<li><a href="/%s">%s</a></li>\n' % (
-				c.replace(" ", "/"), c))
+				url_escape(c.replace(" ", "/")), c))
 		self.write("</ul>\n")
 		self.write("\n<p>Received command '%s'</p>\n" % (cmd))
 
