@@ -6,7 +6,7 @@ class AVR_State(object):
 
 	def __init__(self, name, handle_cmd):
 		self.name = name
-		self.submit = handle_cmd
+		self.submit_cmd = handle_cmd
 
 		self.last_ts = 0
 		self.last_status = None
@@ -17,7 +17,7 @@ class AVR_State(object):
 	def update(self, ts, status):
 		if self.off(ts) and status.standby():
 			# We just received power. Trigger wake from standby.
-			self.handle_cmd(self.name + " on", "")
+			self.submit_cmd(self.name + " on", "")
 
 		ret = status != self.last_status
 		self.last_ts = ts
