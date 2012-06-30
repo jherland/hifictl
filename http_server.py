@@ -3,6 +3,7 @@
 import os
 from tornado.web import RequestHandler, Application, StaticFileHandler
 from tornado.escape import xhtml_escape, url_escape
+from tornado.template import Loader
 
 from av_device import AV_Device
 
@@ -10,32 +11,23 @@ from av_device import AV_Device
 class AV_CommandHandler(RequestHandler):
 
 	def get(self, path):
-		av_loop = self.application.av_loop
+		app = self.application
 
 		# Turn self.path into an A/V command and submit it
 		cmd = path.strip("/").replace("/", " ")
-		av_loop.submit_cmd(cmd)
-
-		self.write("<html>\n<title>%s</title>\n<body>\n" % (
-			self.application.Description))
+		app.av_loop.submit_cmd(cmd)
 
 		try:
-			avr_state = av_loop.devices["avr"].state
-			self.write("<pre>%s</pre>\n" % (
-				xhtml_escape(str(avr_state))))
+			avr_state = app.av_loop.devices["avr"].state
 		except KeyError:
-			pass
+			avr_state = None
 
-		self.write("<ul>\n")
-		for c in sorted(av_loop.cmd_handlers.iterkeys()):
-			if not c:
-				continue
-			self.write('<li><a href="/%s">%s</a></li>\n' % (
-				url_escape(c.replace(" ", "/")), c))
-		self.write("</ul>\n")
-		self.write("\n<p>Received command '%s'</p>\n" % (cmd))
-
-		self.write("</body>\n</html>\n")
+		self.write(app.templates.load("index.html").generate(
+			title = app.Description,
+			avr_state = avr_state,
+			cmd_handlers = app.av_loop.cmd_handlers,
+			cmd = cmd,
+		))
 
 
 class AV_HTTPServer(AV_Device, Application):
@@ -67,14 +59,17 @@ class AV_HTTPServer(AV_Device, Application):
 
 	def __init__(self, av_loop, name):
 		AV_Device.__init__(self, av_loop, name)
-		static_root = av_loop.args['%s_root' % (self.name)]
+		self.docroot = av_loop.args['%s_root' % (self.name)]
 		Application.__init__(self, [
 			(r"/static/(.*)",   StaticFileHandler,
-				{"path": static_root}),
+				{"path": self.docroot}),
 			(r"/(favicon.ico)", StaticFileHandler,
-				{"path": static_root}),
+				{"path": self.docroot}),
 			(r"/(.*)",          AV_CommandHandler),
 		], debug = self.Debug)
+
+		# Template loader (and cache)
+		self.templates = Loader(os.path.join(self.docroot, "templates"))
 
 		self.server_host = av_loop.args["%s_host" % (self.name)]
 		self.server_port = int(av_loop.args["%s_port" % (self.name)])
