@@ -69,7 +69,7 @@ class HDMI_Switch(AV_SerialDevice):
 		cmd = cmd.split()
 		assert cmd[0] == self.name
 		assert len(cmd) == 2
-		self.schedule_write(self.Commands[cmd])
+		self.schedule_write(self.Commands[cmd[1]])
 
 
 def main(args):
