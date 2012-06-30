@@ -22,7 +22,7 @@ class IndexHandler(RequestHandler):
 			title = app.Description,
 			avr_state = avr_state,
 			cmd_handlers = app.av_loop.cmd_handlers,
-			cmd = self.get_argument("cmd", None),
+			last_cmd = self.get_argument("cmd", None),
 		))
 
 
@@ -68,7 +68,7 @@ class AV_HTTPServer(AV_Device, Application):
 		AV_Device.__init__(self, av_loop, name)
 		self.docroot = av_loop.args['%s_root' % (self.name)]
 		Application.__init__(self, [
-			(r"/static/(.*)",   StaticFileHandler,
+			(r"/(static/.*)",   StaticFileHandler,
 				{"path": self.docroot}),
 			(r"/(favicon.ico)", StaticFileHandler,
 				{"path": self.docroot}),

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>{{ title }}</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="/static/jquery.mobile-1.1.0.min.css" />
+	<script src="/static/jquery-1.7.2.min.js"></script>
+	<script src="/static/jquery.mobile-1.1.0.min.js"></script>
+</head>
+<body>
+
+<div data-role="page" id="main">
+
+	<div data-role="header">
+		<h1>{{ title }}</h1>
+	</div><!-- /header -->
+
+	<div data-role="content">
+		<ul>
+		{% for c in sorted(cmd_handlers) %}
+			{% if c %}
+			<li><a
+				href="/{{ url_escape(c.replace(' ', '/')) }}"
+				data-role="button"
+			>
+				{{ c }}
+			</a></li>
+			{% end %}
+		{% end %}
+		</ul>
+
+		<p>Last command: '{{ last_cmd }}'</p>
+	</div><!-- /content -->
+
+	<div data-role="footer">
+		{% if avr_state %}
+		<pre>{{ avr_state }}</pre>
+		{% end %}
+	</div><!-- /footer -->
+
+</div><!-- /page -->
+
+</body>
+</html>
