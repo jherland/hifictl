@@ -13,7 +13,12 @@ class AV_CommandHandler(RequestHandler):
 		cmd = path.strip("/").replace("/", " ")
 		self.application.av_loop.submit_cmd(cmd)
 
-		self.write("Received command '%s'" % (cmd))
+		self.write("<ul>\n")
+		for c in self.application.av_loop.cmd_handlers.iterkeys():
+			self.write('<li><a href="/%s">%s</a></li>\n' % (
+				c.replace(" ", "/"), c))
+		self.write("</ul>\n")
+		self.write("\n<p>Received command '%s'</p>\n" % (cmd))
 
 
 class AV_HTTPServer(AV_Device, Application):
