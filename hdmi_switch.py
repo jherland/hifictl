@@ -48,7 +48,7 @@ class HDMI_Switch(AV_SerialDevice):
 		if s == self.Init_Input:
 			self.debug("started.")
 			# Trigger wake from standby
-			self.handle_cmd(self.name, "on")
+			self.handle_cmd(self.name + " on", "")
 		elif s == "\0":
 			self.ready_to_write(False)
 			self.debug("stopped.")
