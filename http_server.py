@@ -63,8 +63,7 @@ class AV_CommandHandler(RequestHandler):
 		cmd = path.strip("/").replace("/", " ")
 		self.application.av_loop.submit_cmd(cmd)
 
-		# Redirect back to index
-		self.redirect("/?cmd=%s" % (url_escape(cmd)))
+	post = get
 
 
 class AV_HTTPServer(AV_Device, Application):

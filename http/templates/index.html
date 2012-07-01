@@ -12,6 +12,14 @@
 			var data = e.data.replace(/\|/g, "\n");
 			$('#avr_state').contents().replaceWith(data);
 		};
+
+		function send_cmd(cmd) {
+			var data = escape("/" + cmd.replace(/ /g, "/"));
+			var req = new XMLHttpRequest();
+			req.onreadystatechange = function() { };
+			req.open("POST", data, true);
+			req.send();
+		};
 	</script>
 
 </head>
@@ -26,9 +34,7 @@
 	<div data-role="content">
 		{% for c in sorted(cmd_handlers) %}
 			{% if c %}
-			<a href="/{{ url_escape(c.replace(' ', '/')) }}" data-role="button">
-				{{ c }}
-			</a>
+			<button onclick="send_cmd('{{ c }}')">{{ c }}</button>
 			{% end %}
 		{% end %}
 
