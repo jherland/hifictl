@@ -203,6 +203,36 @@ class AVR_Status(object):
 	def surr_string(self):
 		return "+".join(sorted(self.surround()))
 
+	def short_surr_string(self):
+		"""Return a short string describing the surround status.
+
+		Abbreviate the active surround mode names to 2-4 chars, and
+		return them separated by "+". If more than three are active,
+		return "***" instead.
+		"""
+		short_map = { # Map long to short surround names.
+			"DOLBY DIGITAL EX": "DDEX",
+			"DOLBY DIGITAL": "DD",
+			"DOLBY PRO LOGIC II": "DPL2",
+			"DOLBY PRO LOGIC": "DPL",
+			"DOLBY 3 STEREO": "D3S",
+			"STEREO": "ST",
+			"DOLBY HEADPHONE": "DH",
+			"DOLBY VIRTUAL": "DV",
+			"DTS ES": "DTES",
+			"DTS": "DTS",
+			"LOGIC 7": "L7",
+			"VMAX": "VMAX",
+			"DSP": "DSP",
+			"7CH.STEREO": "7CHS",
+			"5CH.STEREO": "5CHS",
+			"SURR.OFF": "SROF",
+		}
+		short_surr = map(lambda s: short_map[s], self.surround())
+		if len(short_surr) > 3:
+			return "***"
+		return "+".join(sorted(short_surr))
+
 	# The following lists the reverse-engineered interpretation of
 	# icons[4:8] and how they correspond to the channel/speaker icons
 	# on the AVR front display:
@@ -328,7 +358,7 @@ class AVR_Status(object):
 		return ret
 
 	def spkr_string(self):
-		"""Return a short string describing the speakers used by AVR."""
+		"""Return a string describing the speakers used by AVR."""
 		spkrs = self.speakers()
 		sets = [
 			spkrs & set(("L", "R", "l", "r")),
@@ -338,6 +368,14 @@ class AVR_Status(object):
 			spkrs & set(("SBL", "SBR", "sbl", "sbr")),
 		]
 		return "/".join(["+".join(sorted(s)) for s in sets if s])
+
+	def short_spkr_string(self):
+		"""Return a short string of the form X.Y denoting the number of
+		speakers used by AVR."""
+		spkrs = self.speakers()
+		num = len(spkrs)
+		lfe = ("LFE" in spkrs) and 1 or 0
+		return "%u.%u" % (num - lfe, lfe)
 
 	def source(self):
 		"""Decode and return the selected source from AVR status.
