@@ -44,6 +44,12 @@
 		<button onclick="send_cmd('avr mute')" data-theme="b">Mute</button>
 		<button onclick="send_cmd('avr vol+')">Vol+</button>
 	</div>
+	<div data-role="controlgroup" data-type="horizontal">
+		<!-- <button onclick="send_cmd('avr surround 6ch')">5.1</button> -->
+		<button onclick="send_cmd('avr surround dolby')">Surround<!-- Dolby --></button>
+		<!-- <button onclick="send_cmd('avr surround dts')">DTS</button> -->
+		<button onclick="send_cmd('avr surround stereo')">Stereo</button>
+	</div>
 	{% end %}
 
 	{% if "hdmi on" in cmd_handlers %}

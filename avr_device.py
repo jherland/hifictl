@@ -28,6 +28,11 @@ class AVR_Device(AV_SerialDevice):
 		"mute": "MUTE",
 		"vol+": "VOL UP",
 		"vol-": "VOL DOWN",
+
+		"surround 6ch":    "6CH/8CH",
+		"surround dolby":  "DOLBY",
+		"surround dts":    "DTS",
+		"surround stereo": "STEREO",
 	}
 
 	def __init__(self, av_loop, name):
@@ -97,9 +102,9 @@ class AVR_Device(AV_SerialDevice):
 			self.ready_to_write(True)
 
 	def handle_cmd(self, cmd, rest):
-		cmd = cmd.split()
+		cmd = cmd.split(" ", 1)
 		assert cmd[0] == self.name
-		assert len(cmd) == 2
+		assert cmd[1] in self.Commands
 		avr_cmd = AVR_Command(self.Commands[cmd[1]])
 		dgram_spec = AVR_Datagram.PC_AVR_Command
 		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
