@@ -26,25 +26,41 @@
 </head>
 <body>
 
-<div data-role="page" id="main">
+<div data-role="page" id="main" style="text-align: center">
 
-	<div data-role="header">
-		<h1>{{ title }}</h1>
-	</div><!-- /header -->
+<div data-role="header">
+	<h1>A/V Control</h1>
+</div><!-- /header -->
 
-	<div data-role="content">
-		{% for c in sorted(cmd_handlers) %}
-			{% if c %}
-			<button onclick="send_cmd('{{ c }}')">{{ c }}</button>
-			{% end %}
-		{% end %}
+<div data-role="content">
+	{% if "avr on" in cmd_handlers %}
+	<h3>Surround Receiver</h3>
+	<div data-role="controlgroup" data-type="horizontal">
+		<button onclick="send_cmd('avr on')" data-theme="a">On</button>
+		<button onclick="send_cmd('avr off')" data-theme="a">Off</button>
+	</div>
+	<div data-role="controlgroup" data-type="horizontal">
+		<button onclick="send_cmd('avr vol-')">Vol-</button>
+		<button onclick="send_cmd('avr mute')" data-theme="b">Mute</button>
+		<button onclick="send_cmd('avr vol+')">Vol+</button>
+	</div>
+	{% end %}
 
-		<p>Last command: '{{ last_cmd }}'</p>
-	</div><!-- /content -->
+	{% if "hdmi on" in cmd_handlers %}
+	<h3>HDMI Switch</h3>
+	<div data-role="controlgroup" data-type="horizontal">
+		<button onclick="send_cmd('hdmi on')" data-theme="a">On/Off</button>
+		<button onclick="send_cmd('hdmi 1')">HTPC</button>
+		<button onclick="send_cmd('hdmi 2')">Get</button>
+		<button onclick="send_cmd('hdmi 3')">PS3</button>
+		<!-- <button onclick="send_cmd('hdmi 4')">Wii</button> -->
+	</div>
+	{% end %}
+</div><!-- /content -->
 
-	<div data-role="footer">
-		<pre id="avr_state">Initializing...</pre>
-	</div><!-- /footer -->
+<div data-role="footer">
+	<pre id="avr_state">Initializing...</pre>
+</div><!-- /footer -->
 
 </div><!-- /page -->
 
