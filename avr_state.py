@@ -12,7 +12,12 @@ class AVR_State(object):
 		self.last_status = None
 
 	def __str__(self):
-		return str(self.last_status)
+		if self.last_status is None:
+			return "UNKNOWN"
+		s = self.last_status
+		return "%s\n%s\n%s/%s/%s -> %s" % (
+			s.line1, s.line2, s.source(), s.ch_string(),
+			s.short_surr_string(), s.short_spkr_string())
 
 	def update(self, ts, status):
 		if self.off(ts) and status.standby():
