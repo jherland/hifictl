@@ -16,18 +16,13 @@
 	</div><!-- /header -->
 
 	<div data-role="content">
-		<ul>
 		{% for c in sorted(cmd_handlers) %}
 			{% if c %}
-			<li><a
-				href="/{{ url_escape(c.replace(' ', '/')) }}"
-				data-role="button"
-			>
+			<a href="/{{ url_escape(c.replace(' ', '/')) }}" data-role="button">
 				{{ c }}
-			</a></li>
+			</a>
 			{% end %}
 		{% end %}
-		</ul>
 
 		<p>Last command: '{{ last_cmd }}'</p>
 	</div><!-- /content -->
