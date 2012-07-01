@@ -14,10 +14,10 @@
 		};
 
 		function send_cmd(cmd) {
-			var data = escape("/" + cmd.replace(/ /g, "/"));
+			var data = "/" + cmd.replace(/ /g, "/");
 			var req = new XMLHttpRequest();
 			req.onreadystatechange = function() { };
-			req.open("POST", data, true);
+			req.open("POST", encodeURIComponent(data), true);
 			req.send();
 		};
 	</script>
