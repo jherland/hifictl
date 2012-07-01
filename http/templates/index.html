@@ -9,7 +9,8 @@
 	<script>
 		var source = new EventSource('/events');
 		source.onmessage = function(e) {
-			var data = e.data.replace(/\|/g, "\n");
+			var json = JSON.parse(e.data)
+			var data = $.trim(json).replace(/\ *\| */g, "\n");
 			$('#avr_state').contents().replaceWith(data);
 		};
 

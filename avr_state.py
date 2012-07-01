@@ -19,6 +19,11 @@ class AVR_State(object):
 			s.line1, s.line2, s.source(), s.ch_string(),
 			s.short_surr_string(), s.short_spkr_string())
 
+	def json(self):
+		"""Dump the current state as JSON."""
+		import json
+		return json.dumps(str(self))
+
 	def update(self, ts, status):
 		if self.off(ts) and status.standby():
 			# We just received power. Trigger wake from standby.

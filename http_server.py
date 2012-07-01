@@ -44,12 +44,13 @@ class EventHandler(RequestHandler):
 
 	def emit(self, *args):
 		try:
-			avr_state = self.application.av_loop.devices["avr"].state
-			self.write("data: %s" % (avr_state))
+			state = self.application.av_loop.devices["avr"].state
+			for line in state.json().split("\n"):
+				self.write("data: %s\n" % (line))
 		except:
-			self.write("data: Failed to get AVR_State...")
+			self.write("data: 'null'\n") # None in JSON
 
-		self.write("\n\n")
+		self.write("\n")
 		self.flush()
 
 	@asynchronous
