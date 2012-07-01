@@ -45,7 +45,7 @@ class AVR_Device(AV_SerialDevice):
 		# Write enabling needs to be delayed. See ready_to_write()
 		self.write_timer = None # or (timeout_handle, deadline)
 
-		self.state = AVR_State(self.name, self.handle_cmd)
+		self.state = AVR_State(self.name, self.av_loop.submit_cmd)
 
 	def _delayed_ready(self):
 		self.write_timer = None
