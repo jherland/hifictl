@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import os
-from tornado.web import RequestHandler, Application, StaticFileHandler
+from tornado.web import RequestHandler, Application, StaticFileHandler, asynchronous
 from tornado.escape import xhtml_escape, url_escape
 from tornado.template import Loader
 
@@ -25,6 +25,36 @@ class IndexHandler(RequestHandler):
 			last_cmd = self.get_argument("cmd", None),
 		))
 
+
+class EventHandler(RequestHandler):
+
+	def initialize(self):
+		self.application.av_loop.add_cmd_handler(
+			"avr update", self.emit)
+
+	def on_connection_close(self):
+		self.application.av_loop.remove_cmd_handler(
+			"avr update", self.emit)
+
+	def prepare(self):
+		self.set_header('Content-Type', 'text/event-stream')
+		self.set_header('Cache-Control', 'no-cache')
+
+		self.emit()
+
+	def emit(self, *args):
+		try:
+			avr_state = self.application.av_loop.devices["avr"].state
+			self.write("data: %s" % (avr_state))
+		except:
+			self.write("data: Failed to get AVR_State...")
+
+		self.write("\n\n")
+		self.flush()
+
+	@asynchronous
+	def get(self):
+		pass
 
 class AV_CommandHandler(RequestHandler):
 
@@ -73,6 +103,7 @@ class AV_HTTPServer(AV_Device, Application):
 			(r"/(favicon.ico)", StaticFileHandler,
 				{"path": self.docroot}),
 			(r"/(index.html)?", IndexHandler),
+			(r"/events",        EventHandler),
 			(r"/(.*)",          AV_CommandHandler),
 		], debug = self.Debug)
 

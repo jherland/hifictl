@@ -15,7 +15,7 @@ class AVR_State(object):
 		if self.last_status is None:
 			return "UNKNOWN"
 		s = self.last_status
-		return "%s\n%s\n%s/%s/%s -> %s" % (
+		return "%s|%s|%s/%s/%s -> %s" % (
 			s.line1, s.line2, s.source(), s.ch_string(),
 			s.short_surr_string(), s.short_spkr_string())
 
@@ -27,6 +27,10 @@ class AVR_State(object):
 		ret = status != self.last_status
 		self.last_ts = ts
 		self.last_status = status
+
+		if ret:
+			self.submit_cmd("%s update" % (self.name))
+
 		return ret
 
 	def off(self, ts):
