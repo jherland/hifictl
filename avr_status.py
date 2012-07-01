@@ -5,6 +5,10 @@ class AVR_Status(object):
 	"""Encapsulate a single AVR status update."""
 
 	@staticmethod
+	def decode_avr_line(line):
+		return line.replace("`", u"\u2161").encode("utf-8")
+
+	@staticmethod
 	def parse_dgram(data):
 		"""Parse a datagram containing status info from the AVR.
 
@@ -46,8 +50,8 @@ class AVR_Status(object):
 		assert len(line1) == 14
 		assert len(line2) == 14
 		assert len(icons) == 14
-		self.line1 = line1
-		self.line2 = line2
+		self.line1 = self.decode_avr_line(line1)
+		self.line2 = self.decode_avr_line(line2)
 		self.icons = icons
 
 	def __str__(self):
