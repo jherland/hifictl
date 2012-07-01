@@ -14,7 +14,7 @@ class AV_Loop(IOLoop):
 
 		self.devices = {} # Map device names to AV_Device objects
 
-		self.cmd_handlers = {} # Map commands to command handlers
+		self.cmd_handlers = {} # Map commands to list of handlers
 
 	def add_device(self, name, dev):
 		assert name not in self.devices
@@ -45,29 +45,38 @@ class AV_Loop(IOLoop):
 		the remainder of the command that followed the match.
 		"""
 		if cmd in self.cmd_handlers:
-			raise KeyError("Command '%s' already registered" % cmd)
-		self.cmd_handlers[cmd] = handler
+			self.cmd_handlers[cmd].append(handler)
+		else:
+			self.cmd_handlers[cmd] = [handler]
 
-	def remove_cmd_handler(self, cmd):
-		"""Remove the A/V command handler for the given A/V command."""
-		if cmd in self.cmd_handlers:
-			del self.cmd_handlers[cmd]
+	def remove_cmd_handler(self, cmd, handler):
+		"""Remove the given handler for the given A/V command."""
+		try:
+			self.cmd_handlers[cmd].remove(handler)
+			if not self.cmd_handlers[cmd]:
+				del self.cmd_handlers[cmd]
+		except:
+			pass
 
 	def submit_cmd(self, cmd):
-		"""Forward the given A/V command to the appropriate handler.
+		"""Forward the given A/V command to the appropriate handler(s).
 
 		See the documentation of add_cmd_handler() to see how commands
 		are mapped to handlers.
 		"""
 		pre_words = cmd.strip().split()
 		post_words = []
+
+		def _invoke(cmd, rest):
+			for handler in self.cmd_handlers[cmd]:
+				handler(cmd, rest)
+
 		while pre_words:
 			pre_cmd = " ".join(pre_words)
 			if pre_cmd in self.cmd_handlers:
-				return self.cmd_handlers[pre_cmd](
-					pre_cmd, " ".join(post_words))
+				return _invoke(pre_cmd, " ".join(post_words))
 			post_words.insert(0, pre_words.pop())
-		return self.cmd_handlers[""]("", " ".join(post_words))
+		return _invoke("", " ".join(post_words))
 
 	def run(self):
 		"""Run the I/O loop until aborted."""
