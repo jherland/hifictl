@@ -355,9 +355,8 @@ class AVR_Status(object):
 		 - FM
 		 - AM
 
-		Only one of these is active at any time, except when the AVR
-		boots, in which case the string returned contains all of the
-		above, separated with '+' signs.
+		Only one of these is active at any time, except when the AVR is
+		off/standby, or while booting, in which case None is returned
 		"""
 		# The following lists the reverse-engineered interpretation of
 		# icons[8:12] and how they correspond to the source icons
@@ -386,9 +385,7 @@ class AVR_Status(object):
 		if buf[1] & 0x01 and buf[2] & 0x80: ret.add("VID4")
 		if buf[1] & 0x04: ret.add("FM") # 0x0c (shares 0x80 with "AM")
 		if buf[1] & 0x02: ret.add("AM") # 0x0a (shares 0x80 with "FM")
-		if len(ret) == 0:
-			return None
-		elif len(ret) == 1:
+		if len(ret) == 1:
 			return ret.pop()
 		else:
-			return "+".join(sorted(ret))
+			return None
