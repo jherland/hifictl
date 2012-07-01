@@ -22,7 +22,25 @@ class AVR_State(object):
 	def json(self):
 		"""Dump the current state as JSON."""
 		import json
-		return json.dumps(str(self))
+		if self.last_status is None:
+			return json.dumps(None)
+
+		return json.dumps({
+			"line1":       self.last_status.line1,
+			"line2":       self.last_status.line2,
+			"standby":     self.last_status.standby(),
+			"mute":        self.last_status.mute(),
+			"volume":      self.last_status.volume(),
+			"surround":    list(self.last_status.surround()),
+			"surr_string": self.last_status.surr_string(),
+			"surr_str":    self.last_status.short_surr_string(),
+			"channels":    list(self.last_status.channels()),
+			"ch_string":   self.last_status.ch_string(),
+			"speakers":    list(self.last_status.speakers()),
+			"spkr_string": self.last_status.spkr_string(),
+			"spkr_str":    self.last_status.short_spkr_string(),
+			"source":      self.last_status.source(),
+		})
 
 	def update(self, ts, status):
 		if self.off(ts) and status.standby():

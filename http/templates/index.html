@@ -9,9 +9,17 @@
 	<script>
 		var source = new EventSource('/events');
 		source.onmessage = function(e) {
-			var json = JSON.parse(e.data)
-			var data = $.trim(json).replace(/\ *\| */g, "\n");
-			$('#avr_state').contents().replaceWith(data);
+			var avr_state = JSON.parse(e.data)
+			var state_str = "Unknown"
+			if (avr_state) {
+				state_str = $.trim(avr_state.line1) + "\n" +
+				            $.trim(avr_state.line2) + "\n" +
+				            avr_state.source + "/" +
+				            avr_state.ch_string + "/" +
+				            avr_state.surr_str + " -> " +
+				            avr_state.spkr_str;
+			}
+			$('#avr_state').contents().replaceWith(state_str);
 		};
 
 		function send_cmd(cmd) {
