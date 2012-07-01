@@ -6,6 +6,14 @@
 	<link rel="stylesheet" href="/static/jquery.mobile-1.1.0.min.css" />
 	<script src="/static/jquery-1.7.2.min.js"></script>
 	<script src="/static/jquery.mobile-1.1.0.min.js"></script>
+	<script>
+		var source = new EventSource('/events');
+		source.onmessage = function(e) {
+			var data = e.data.replace(/\|/g, "\n");
+			$('#avr_state').contents().replaceWith(data);
+		};
+	</script>
+
 </head>
 <body>
 
@@ -28,9 +36,7 @@
 	</div><!-- /content -->
 
 	<div data-role="footer">
-		{% if avr_state %}
-		<pre>{{ avr_state }}</pre>
-		{% end %}
+		<pre id="avr_state">Initializing...</pre>
 	</div><!-- /footer -->
 
 </div><!-- /page -->
