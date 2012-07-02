@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+from avr_status import AVR_Status
+
 
 class AVR_State(object):
 	"""Encapsulate the current state of the Harman/Kardon AVR 430."""
@@ -12,13 +14,36 @@ class AVR_State(object):
 		self.last_ts = 0
 		self.last_status = None
 
+		self.standby  = None  # bool
+		self.mute     = None  # bool
+		self.volume   = None  # int
+		self.source   = None  # string
+		self.surround = set() # set(strings)
+		self.channels = set() # set(strings)
+		self.speakers = set() # set(strings)
+		self.line1    = None  # string
+		self.line2    = None  # string
+
 	def __str__(self):
-		if self.last_status is None:
-			return "UNKNOWN"
-		s = self.last_status
-		return "%s|%s|%s/%s/%s -> %s" % (
-			s.line1, s.line2, s.source(), s.ch_string(),
-			s.short_surr_string(), s.short_spkr_string())
+		props = []
+		if self.off():
+			props.append("off")
+		elif self.standby:
+			props.append("standby")
+		else:
+			if self.mute:
+				props.append("mute")
+			if self.volume is not None:
+				props.append("%idB" % (self.volume))
+			props.append("%s/%s/%s/ -> %s" % (
+				self.source,
+				AVR_Status.channels_string(self.channels),
+				AVR_Status.surround_string(self.surround),
+				AVR_Status.speakers_string(self.speakers),
+			))
+			props.append("'%s'" % (self.line1))
+			props.append("'%s'" % (self.line2))
+		return "<AVR_State " + " ".join(props) + ">"
 
 	def json(self):
 		"""Dump the current state as JSON."""
@@ -27,42 +52,60 @@ class AVR_State(object):
 			return json.dumps(None)
 
 		return json.dumps({
-			"line1":       self.last_status.line1,
-			"line2":       self.last_status.line2,
-			"standby":     self.last_status.standby(),
-			"mute":        self.last_status.mute(),
-			"volume":      self.last_status.volume(),
-			"surround":    list(self.last_status.surround()),
-			"surr_string": self.last_status.surr_string(),
-			"surr_str":    self.last_status.short_surr_string(),
-			"channels":    list(self.last_status.channels()),
-			"ch_string":   self.last_status.ch_string(),
-			"speakers":    list(self.last_status.speakers()),
-			"spkr_string": self.last_status.spkr_string(),
-			"spkr_str":    self.last_status.short_spkr_string(),
-			"source":      self.last_status.source(),
+			"off":             self.off(),
+			"standby":         self.standby,
+			"mute":            self.mute,
+			"volume":          self.volume,
+			"surround":        list(self.surround),
+			"surround_string": AVR_Status.surround_string(self.surround),
+			"surround_str":    AVR_Status.surround_str(self.surround),
+			"channels":        list(self.channels),
+			"channels_string": AVR_Status.channels_string(self.channels),
+			"speakers":        list(self.speakers),
+			"speakers_string": AVR_Status.speakers_string(self.speakers),
+			"speakers_str":    AVR_Status.speakers_str(self.speakers),
+			"source":          self.source,
+			"line1":           self.line1,
+			"line2":           self.line2,
 		})
 
 	def update(self, status):
+		# Record pre-update state, to compare to post-update state:
+		pre_state = str(self)
+
 		ts = self.get_ts()
 
+		# Trigger wake from standby if we just went from OFF -> STANDBY
 		if self.off(ts) and status.standby():
-			# We just received power. Trigger wake from standby.
 			self.submit_cmd("%s on" % (self.name))
 
-		ret = status != self.last_status
 		self.last_ts = ts
 		self.last_status = status
 
-		if ret:
-			self.submit_cmd("%s update" % (self.name))
+		self.standby = status.standby()
+		self.mute = status.mute()
+		if status.volume() is not None:
+			self.volume = status.volume()
+		self.surround = status.surround()
+		if status.channels():
+			self.channels = status.channels()
+		self.speakers = status.speakers()
+		self.source = status.source()
+		if not (status.mute() and not status.line1.strip()):
+			self.line1 = status.line1
+		self.line2 = status.line2
 
-		return ret
+		# Figure out if we actually changed state
+		post_state = str(self)
+		if pre_state != post_state:
+			self.submit_cmd("%s update" % (self.name))
+			return True
+		return False
 
 	def off(self, ts = None):
 		"""Return True iff the AVR is disconnected, or turned off."""
 		if ts is None:
 			ts = self.get_ts()
 
-		# Assume that the AVR is off if we haven't heard from it in 0.5s
+		# Assume the AVR is off if we haven't heard from it in 0.5s
 		return ts > self.last_ts + 0.5
