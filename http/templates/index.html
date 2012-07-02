@@ -12,12 +12,15 @@
 			var avr_state = JSON.parse(e.data)
 			var state_str = "Unknown"
 			if (avr_state) {
-				state_str = $.trim(avr_state.line1) + "\n" +
-				            $.trim(avr_state.line2) + "\n" +
-				            avr_state.source + "/" +
-				            avr_state.ch_string + "/" +
-				            avr_state.surr_str + " -> " +
-				            avr_state.spkr_str;
+				state_str  = $.trim(avr_state.line1) + "\n";
+				state_str += $.trim(avr_state.line2) + "\n";
+				if (avr_state.volume != null) {
+					state_str += avr_state.volume + "dB\n";
+				}
+				state_str += avr_state.source + "/" +
+					avr_state.channels_string + "\n";
+				state_str += avr_state.surround_string + "\n";
+				state_str += avr_state.speakers_string;
 			}
 			$('#avr_state').contents().replaceWith(state_str);
 		};
