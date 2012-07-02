@@ -65,6 +65,8 @@ class AVR_Device(AV_SerialDevice):
 
 	def ready_to_write(self, set_to = None):
 		if set_to is None:
+			if self.state.off:
+				return False
 			return AV_SerialDevice.ready_to_write(self)
 
 		# set_to == False indicates that we've just written to the AVR.
@@ -102,9 +104,13 @@ class AVR_Device(AV_SerialDevice):
 			self.ready_to_write(True)
 
 	def handle_cmd(self, cmd, rest):
+		if self.state.off:
+			self.debug("Discarding '%s' while AVR is off" % (cmd))
+			return
 		cmd = cmd.split(" ", 1)
 		assert cmd[0] == self.name
 		assert cmd[1] in self.Commands
+		assert not rest
 		avr_cmd = AVR_Command(self.Commands[cmd[1]])
 		dgram_spec = AVR_Datagram.PC_AVR_Command
 		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
