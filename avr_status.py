@@ -56,8 +56,12 @@ class AVR_Status(object):
 
 	def __str__(self):
 		return "<AVR_Status: '%s' '%s' %s/%s/%s -> %s>" % (
-			self.line1, self.line2, self.source(), self.ch_string(),
-			self.surr_string(), self.spkr_string())
+			self.line1,
+			self.line2,
+			self.source(),
+			self.channels_string(self.channels()),
+			self.surround_string(self.surround()),
+			self.speakers_string(self.speakers()))
 
 	def __hash__(self):
 		return hash(self.line1) ^ hash(self.line2) ^ hash(self.icons)
@@ -200,17 +204,23 @@ class AVR_Status(object):
 		if   buf[3] & 0x02: ret.add("SURR.OFF")
 		return ret
 
-	def surr_string(self):
-		return "+".join(sorted(self.surround()))
+	@staticmethod
+	def surround_string(surround_set):
+		"""Return a string with the given set of surround modes."""
+		return "+".join(sorted(surround_set))
 
-	def short_surr_string(self):
-		"""Return a short string describing the surround status.
+	@staticmethod
+	def surround_str(surround_set):
+		"""Return a short string with the given set of surround modes.
 
-		Abbreviate the active surround mode names to 2-4 chars, and
+		Abbreviate the given surround mode names to 2-4 chars, and
 		return them separated by "+". If more than three are active,
 		return "***" instead.
 		"""
-		short_map = { # Map long to short surround names.
+		if len(surround_set) > 3:
+			return "***"
+
+		d = { # Map long to short surround names.
 			"DOLBY DIGITAL EX": "DDEX",
 			"DOLBY DIGITAL": "DD",
 			"DOLBY PRO LOGIC II": "DPL2",
@@ -228,10 +238,7 @@ class AVR_Status(object):
 			"5CH.STEREO": "5CHS",
 			"SURR.OFF": "SROF",
 		}
-		short_surr = map(lambda s: short_map[s], self.surround())
-		if len(short_surr) > 3:
-			return "***"
-		return "+".join(sorted(short_surr))
+		return "+".join(sorted(map(lambda s: d[s], surround_set)))
 
 	# The following lists the reverse-engineered interpretation of
 	# icons[4:8] and how they correspond to the channel/speaker icons
@@ -301,18 +308,15 @@ class AVR_Status(object):
 		if buf[3] & 0x02: ret.add("SBR") # surround back right
 		return ret
 
-	def ch_string(self):
-		"""Return a string of the form X.Y denoting the input channels.
+	@staticmethod
+	def channels_string(channels_set):
+		"""Return a string of the form X.Y from a set of input channels.
 
-		This builds on top of self.channels(), and converts the returned
-		set into a string typically like "2.0", "5.1" or "7.1".
+		This converts a set of input channels (as returned by
+		.channels()) into a string typically like "2.0", "5.1" or "7.1".
 		"""
-		chs = self.channels()
-		lfe = 0
-		if "LFE" in chs:
-			lfe = 1
-		chs.discard("LFE")
-		return "%u.%u" % (len(chs), lfe)
+		lfe = ("LFE" in channels_set) and 1 or 0
+		return "%u.%u" % (len(channels_set) - lfe, lfe)
 
 	def speakers(self):
 		"""Decode and return the set of speakers used by to the AVR.
@@ -357,25 +361,23 @@ class AVR_Status(object):
 		elif buf[3] & 0x04: ret.add("sbr")
 		return ret
 
-	def spkr_string(self):
-		"""Return a string describing the speakers used by AVR."""
-		spkrs = self.speakers()
+	@staticmethod
+	def speakers_string(speakers_set):
+		"""Return a string describing the speakers in the given set."""
 		sets = [
-			spkrs & set(("L", "R", "l", "r")),
-			spkrs & set(("C", "c")),
-			spkrs & set(("LFE",)),
-			spkrs & set(("SL", "SR", "sl", "sr")),
-			spkrs & set(("SBL", "SBR", "sbl", "sbr")),
+			speakers_set & set(("L", "R", "l", "r")),
+			speakers_set & set(("C", "c")),
+			speakers_set & set(("LFE",)),
+			speakers_set & set(("SL", "SR", "sl", "sr")),
+			speakers_set & set(("SBL", "SBR", "sbl", "sbr")),
 		]
 		return "/".join(["+".join(sorted(s)) for s in sets if s])
 
-	def short_spkr_string(self):
-		"""Return a short string of the form X.Y denoting the number of
-		speakers used by AVR."""
-		spkrs = self.speakers()
-		num = len(spkrs)
-		lfe = ("LFE" in spkrs) and 1 or 0
-		return "%u.%u" % (num - lfe, lfe)
+	@staticmethod
+	def speakers_str(speakers_set):
+		"""Return a short string of the form X.Y with the #speakers."""
+		lfe = ("LFE" in speakers_set) and 1 or 0
+		return "%u.%u" % (len(speakers_set) - lfe, lfe)
 
 	def source(self):
 		"""Decode and return the selected source from AVR status.
