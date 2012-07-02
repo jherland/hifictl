@@ -28,7 +28,6 @@
 		function send_cmd(cmd) {
 			var data = "/" + cmd.replace(/ /g, "/");
 			var req = new XMLHttpRequest();
-			req.onreadystatechange = function() { };
 			req.open("POST", encodeURIComponent(data), true);
 			req.send();
 		};
