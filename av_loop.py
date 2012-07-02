@@ -78,6 +78,9 @@ class AV_Loop(IOLoop):
 			post_words.insert(0, pre_words.pop())
 		return _invoke("", " ".join(post_words))
 
+	def get_ts(self):
+		return time.time() - self.t0
+
 	def run(self):
 		"""Run the I/O loop until aborted."""
 		try:

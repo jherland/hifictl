@@ -50,7 +50,7 @@ class AVR_Device(AV_SerialDevice):
 		# Write enabling needs to be delayed. See ready_to_write()
 		self.write_timer = None # or (timeout_handle, deadline)
 
-		self.state = AVR_State(self.name, self.av_loop.submit_cmd)
+		self.state = AVR_State(self.name, self.av_loop)
 
 	def _delayed_ready(self):
 		self.write_timer = None
@@ -95,8 +95,8 @@ class AVR_Device(AV_SerialDevice):
 				"expected %u bytes)" % (len(dgram), dgram_len))
 		data = AVR_Datagram.parse_dgram(dgram, dgram_spec)
 		status = AVR_Status.from_dgram(data)
-		if self.state.update(time.time() - self.av_loop.t0, status):
-			self.debug(status)
+		if self.state.update(status):
+			self.debug("%s -> %s" % (status, self.state))
 			if self.status_handler:
 				self.status_handler(status)
 			self.ready_to_write(True)

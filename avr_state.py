@@ -4,9 +4,10 @@
 class AVR_State(object):
 	"""Encapsulate the current state of the Harman/Kardon AVR 430."""
 
-	def __init__(self, name, submit_cmd):
+	def __init__(self, name, av_loop):
 		self.name = name
-		self.submit_cmd = submit_cmd
+		self.submit_cmd = av_loop.submit_cmd
+		self.get_ts = av_loop.get_ts
 
 		self.last_ts = 0
 		self.last_status = None
@@ -42,7 +43,9 @@ class AVR_State(object):
 			"source":      self.last_status.source(),
 		})
 
-	def update(self, ts, status):
+	def update(self, status):
+		ts = self.get_ts()
+
 		if self.off(ts) and status.standby():
 			# We just received power. Trigger wake from standby.
 			self.submit_cmd("%s on" % (self.name))
@@ -56,7 +59,10 @@ class AVR_State(object):
 
 		return ret
 
-	def off(self, ts):
+	def off(self, ts = None):
 		"""Return True iff the AVR is disconnected, or turned off."""
+		if ts is None:
+			ts = self.get_ts()
+
 		# Assume that the AVR is off if we haven't heard from it in 0.5s
 		return ts > self.last_ts + 0.5
