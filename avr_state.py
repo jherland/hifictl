@@ -89,7 +89,7 @@ class AVR_State(object):
 			self.av_loop.submit_cmd("%s on" % (self.name))
 
 		self.off = False
-		self.standby = status.standby()
+		self.standby = status.standby() or self.off
 		self.mute = status.mute()
 		if status.volume() is not None:
 			self.volume = status.volume()
