@@ -12,6 +12,7 @@ class AVR_State(object):
 		self.name = name
 		self.av_loop = av_loop
 
+		self.volume_triggered = False # True iff volume trigger is sent
 		self.watchdog = None  # Times out if we don't get status updates
 
 		self.off      = None  # bool
@@ -91,8 +92,17 @@ class AVR_State(object):
 		self.off = False
 		self.standby = status.standby() or self.off
 		self.mute = status.mute()
-		if status.volume() is not None:
+		if status.volume() is None:
+			if not (self.off or self.standby or self.mute) and \
+			   self.volume is None and not self.volume_triggered:
+				# We have no previous volume information, and
+				# none is present in the given status update.
+				# Send a vol- command to trigger volume display.
+				self.av_loop.submit_cmd("%s vol-" % (self.name))
+				self.volume_triggered = True
+		else:
 			self.volume = status.volume()
+			self.volume_triggered = False
 		self.surround = status.surround()
 		if status.channels():
 			self.channels = status.channels()
