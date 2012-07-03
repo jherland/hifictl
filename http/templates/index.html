@@ -37,12 +37,12 @@ function parse_avr_state(e) {
 	var s = JSON.parse(e.data); // extract AVR state info
 
 	if (!s) {
-		return $('#avr_state').text("Unknown");
+		return $('#avr_state').html("<p>Unknown</p>");
 	}
 
 	ui_disable('#avr_controls', s.off);
 	if (s.off) {
-		return $('#avr_state').text("Off");
+		return $('#avr_state').html("<p>Off</p>");
 	}
 
 	ui_disable('#avr_surroundcontrols', s.standby);
@@ -50,23 +50,28 @@ function parse_avr_state(e) {
 	$('#avr_button_on').toggle(s.standby);
 	$('#avr_button_off').toggle(!s.standby);
 	if (s.standby) {
-		return $('#avr_state').text("Standby");
+		return $('#avr_state').html("<p>Standby</p>");
 	}
 
-	var state_str = $.trim(s.line1) + "\n";
+	var state_str = "<fieldset class=\"ui-grid-a\" style=\"margin: 10px 0;\">\n"
+	state_str += "<pre class=\"ui-block-a\">";
+	state_str += $.trim(s.line1) + "\n";
 	state_str += $.trim(s.line2) + "\n";
+	state_str += "</pre>\n<pre class=\"ui-block-b\">";
+	state_str += s.source + "/" + s.channels_string;
+	state_str += " -> " + s.speakers_str + "\n";
+	state_str += s.surround_string + "\n";
+	state_str += "</pre>\n</fieldset>";
+	$('#avr_state').html(state_str);
+
 	if (s.volume != null) {
 		var vol = s.volume + "dB\n";
-		state_str += vol;
 		$('#avr_volume .ui-btn-text').text(vol + "| Mute");
 	}
 	if (s.mute) {
 		$('#avr_volume .ui-btn-text').text("Unmute")
 	}
-	state_str += s.source + "/" + s.channels_string + "\n";
-	state_str += s.surround_string + "\n";
-	state_str += s.speakers_string;
-	$('#avr_state').text(state_str);
+
 }
 
 var source = new EventSource('/events');
@@ -160,7 +165,7 @@ source.onmessage = parse_avr_state;
 </div>
 
 <div data-role="footer">
-	<pre id="avr_state">Initializing...</pre>
+	<div id="avr_state"><p>Initializing...</p></div>
 </div>
 
 </div>
