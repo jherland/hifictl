@@ -16,18 +16,18 @@ function send_cmd(cmd) {
 };
 
 function parse_avr_state(e) {
-	var avr_state = JSON.parse(e.data)
+	var s = JSON.parse(e.data) // extract AVR state info
 	var state_str = "Unknown"
-	if (avr_state) {
-		state_str  = $.trim(avr_state.line1) + "\n";
-		state_str += $.trim(avr_state.line2) + "\n";
-		if (avr_state.volume != null) {
-			state_str += avr_state.volume + "dB\n";
+	if (s) {
+		state_str  = $.trim(s.line1) + "\n";
+		state_str += $.trim(s.line2) + "\n";
+		if (s.volume != null) {
+			state_str += s.volume + "dB\n";
 		}
-		state_str += avr_state.source + "/" +
-			avr_state.channels_string + "\n";
-		state_str += avr_state.surround_string + "\n";
-		state_str += avr_state.speakers_string;
+		state_str += s.source + "/" +
+			s.channels_string + "\n";
+		state_str += s.surround_string + "\n";
+		state_str += s.speakers_string;
 	}
 	$('#avr_state').contents().replaceWith(state_str);
 };
