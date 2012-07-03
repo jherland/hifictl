@@ -9,10 +9,11 @@
 	<script>
 
 function send_cmd(cmd) {
-	var data = "/" + cmd.replace(/ /g, "/");
-	var req = new XMLHttpRequest();
-	req.open("POST", encodeURIComponent(data), true);
-	req.send();
+	var url = "/" + cmd.replace(/ /g, "/");
+	$.ajax({
+		url: encodeURIComponent(url),
+		type: 'POST'
+	});
 };
 
 function parse_avr_state(e) {
@@ -29,7 +30,7 @@ function parse_avr_state(e) {
 		state_str += s.surround_string + "\n";
 		state_str += s.speakers_string;
 	}
-	$('#avr_state').contents().replaceWith(state_str);
+	$('#avr_state').text(state_str);
 };
 
 var source = new EventSource('/events');
