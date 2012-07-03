@@ -16,6 +16,14 @@ function send_cmd(cmd) {
 	});
 }
 
+function repeat_cmd(cmd, repeats) {
+	var i = 0
+	while (i < repeats) {
+		send_cmd(cmd);
+		i++;
+	}
+}
+
 function ui_disable(selector, disable) {
 	if (disable) {
 		$(selector).addClass('ui-disabled');
@@ -52,7 +60,7 @@ function parse_avr_state(e) {
 		$('#avr_volume .ui-btn-text').text(vol);
 	}
 	if (s.mute) {
-		$('#avr_volume .ui-btn-text').text("Muted")
+		$('#avr_volume .ui-btn-text').text("Mute")
 	}
 	state_str += s.source + "/" + s.channels_string + "\n";
 	state_str += s.surround_string + "\n";
@@ -89,11 +97,13 @@ source.onmessage = parse_avr_state;
 		</span>
 		<div id="avr_subcontrols">
 			<div data-role="controlgroup" data-type="horizontal">
+				<button onclick="repeat_cmd('avr vol-', 5)"><b>-5</b></button>
 				<button onclick="send_cmd('avr vol-')"><b>-</b></button>
 				<span id="avr_volume">
 					<button onclick="send_cmd('avr mute')" data-theme="b">?</button>
 				</span>
 				<button onclick="send_cmd('avr vol+')"><b>+</b></button>
+				<button onclick="repeat_cmd('avr vol+', 5)"><b>+5</b></button>
 			</div>
 			<div data-role="controlgroup" data-type="horizontal">
 				<!-- <button onclick="send_cmd('avr surround 6ch')">5.1</button> -->
