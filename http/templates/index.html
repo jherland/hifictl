@@ -37,7 +37,6 @@ var source = new EventSource('/events');
 source.onmessage = parse_avr_state;
 
 	</script>
-
 </head>
 <body>
 
@@ -49,32 +48,46 @@ source.onmessage = parse_avr_state;
 
 <div data-role="content">
 	{% if "avr on" in cmd_handlers %}
-	<h3>Surround Receiver</h3>
-	<div data-role="controlgroup" data-type="horizontal">
-		<button onclick="send_cmd('avr on')" data-theme="a">On</button>
-		<button onclick="send_cmd('avr off')" data-theme="a">Off</button>
-	</div>
-	<div data-role="controlgroup" data-type="horizontal">
-		<button onclick="send_cmd('avr vol-')">Vol-</button>
-		<button onclick="send_cmd('avr mute')" data-theme="b">Mute</button>
-		<button onclick="send_cmd('avr vol+')">Vol+</button>
-	</div>
-	<div data-role="controlgroup" data-type="horizontal">
-		<!-- <button onclick="send_cmd('avr surround 6ch')">5.1</button> -->
-		<button onclick="send_cmd('avr surround dolby')">Surround<!-- Dolby --></button>
-		<!-- <button onclick="send_cmd('avr surround dts')">DTS</button> -->
-		<button onclick="send_cmd('avr surround stereo')">Stereo</button>
+	<div id="avr_controls">
+		<h3>Surround Receiver</h3>
+		<span id="avr_button_on">
+			<button onclick="send_cmd('avr on')"
+				data-inline="true"
+				data-theme="a">On</button>
+		</span>
+		<span id="avr_button_off">
+			<button onclick="send_cmd('avr off')"
+				data-inline="true"
+				data-theme="a">Off</button>
+		</span>
+		<div id="avr_subcontrols">
+			<div data-role="controlgroup" data-type="horizontal">
+				<button onclick="send_cmd('avr vol-')"><b>-</b></button>
+				<button onclick="send_cmd('avr mute')" data-theme="b">
+					<span id="avr_volume">Mute</span>
+				</button>
+				<button onclick="send_cmd('avr vol+')"><b>+</b></button>
+			</div>
+			<div data-role="controlgroup" data-type="horizontal">
+				<!-- <button onclick="send_cmd('avr surround 6ch')">5.1</button> -->
+				<button onclick="send_cmd('avr surround dolby')">Surround<!-- Dolby --></button>
+				<!-- <button onclick="send_cmd('avr surround dts')">DTS</button> -->
+				<button onclick="send_cmd('avr surround stereo')">Stereo</button>
+			</div>
+		</div>
 	</div>
 	{% end %}
 
 	{% if "hdmi on" in cmd_handlers %}
-	<h3>HDMI Switch</h3>
-	<div data-role="controlgroup" data-type="horizontal">
-		<button onclick="send_cmd('hdmi on')" data-theme="a">On/Off</button>
-		<button onclick="send_cmd('hdmi 1')">HTPC</button>
-		<button onclick="send_cmd('hdmi 2')">Get</button>
-		<button onclick="send_cmd('hdmi 3')">PS3</button>
-		<!-- <button onclick="send_cmd('hdmi 4')">Wii</button> -->
+	<div id="hdmi_controls">
+		<h3>HDMI Switch</h3>
+		<div data-role="controlgroup" data-type="horizontal">
+			<button onclick="send_cmd('hdmi on')" data-theme="a">On/Off</button>
+			<button onclick="send_cmd('hdmi 1')">HTPC</button>
+			<button onclick="send_cmd('hdmi 2')">Get</button>
+			<button onclick="send_cmd('hdmi 3')">PS3</button>
+			<!-- <button onclick="send_cmd('hdmi 4')">Wii</button> -->
+		</div>
 	</div>
 	{% end %}
 </div><!-- /content -->
