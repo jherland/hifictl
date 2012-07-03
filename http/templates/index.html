@@ -14,7 +14,7 @@ function send_cmd(cmd) {
 		url: encodeURIComponent(url),
 		type: 'POST'
 	});
-};
+}
 
 function parse_avr_state(e) {
 	var s = JSON.parse(e.data) // extract AVR state info
@@ -31,7 +31,7 @@ function parse_avr_state(e) {
 		state_str += s.speakers_string;
 	}
 	$('#avr_state').text(state_str);
-};
+}
 
 var source = new EventSource('/events');
 source.onmessage = parse_avr_state;
