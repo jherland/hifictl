@@ -16,20 +16,42 @@ function send_cmd(cmd) {
 	});
 }
 
-function parse_avr_state(e) {
-	var s = JSON.parse(e.data) // extract AVR state info
-	var state_str = "Unknown"
-	if (s) {
-		state_str  = $.trim(s.line1) + "\n";
-		state_str += $.trim(s.line2) + "\n";
-		if (s.volume != null) {
-			state_str += s.volume + "dB\n";
-		}
-		state_str += s.source + "/" +
-			s.channels_string + "\n";
-		state_str += s.surround_string + "\n";
-		state_str += s.speakers_string;
+function ui_disable(selector, disable) {
+	if (disable) {
+		$(selector).addClass('ui-disabled');
 	}
+	else {
+		$(selector).removeClass('ui-disabled');
+	}
+}
+
+function parse_avr_state(e) {
+	var s = JSON.parse(e.data); // extract AVR state info
+
+	if (!s) {
+		return $('#avr_state').text("Unknown");
+	}
+
+	ui_disable('#avr_controls', s.off);
+	if (s.off) {
+		return $('#avr_state').text("Off");
+	}
+
+	ui_disable('#avr_subcontrols', s.standby);
+	$('#avr_button_on').toggle(s.standby);
+	$('#avr_button_off').toggle(!s.standby);
+	if (s.standby) {
+		return $('#avr_state').text("Standby");
+	}
+
+	var state_str = $.trim(s.line1) + "\n";
+	state_str += $.trim(s.line2) + "\n";
+	if (s.volume != null) {
+		state_str += s.volume + "dB\n";
+	}
+	state_str += s.source + "/" + s.channels_string + "\n";
+	state_str += s.surround_string + "\n";
+	state_str += s.speakers_string;
 	$('#avr_state').text(state_str);
 }
 
