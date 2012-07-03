@@ -59,7 +59,7 @@ class AVR_State(object):
 			"mute":            self.mute,
 			"volume":          self.volume,
 			"surround":        list(self.surround),
-			"surround_string": AVR_Status.surround_string(self.surround),
+			"surround_string": AVR_Status.surround_string(self.surround, 3),
 			"surround_str":    AVR_Status.surround_str(self.surround),
 			"channels":        list(self.channels),
 			"channels_string": AVR_Status.channels_string(self.channels),

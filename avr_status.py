@@ -205,19 +205,25 @@ class AVR_Status(object):
 		return ret
 
 	@staticmethod
-	def surround_string(surround_set):
-		"""Return a string with the given set of surround modes."""
+	def surround_string(surround_set, limit_width = 100):
+		"""Return a string with the given set of surround modes.
+
+		Return a string listing the given surround modes, separated by
+		"+". If more than limit_width are active, return "***" instead.
+		"""
+		if len(surround_set) > limit_width:
+			return "***"
 		return "+".join(sorted(surround_set))
 
 	@staticmethod
-	def surround_str(surround_set):
+	def surround_str(surround_set, limit_width = 3):
 		"""Return a short string with the given set of surround modes.
 
 		Abbreviate the given surround mode names to 2-4 chars, and
-		return them separated by "+". If more than three are active,
-		return "***" instead.
+		return them separated by "+". If more than limit_width are
+		active, return "***" instead.
 		"""
-		if len(surround_set) > 3:
+		if len(surround_set) > limit_width:
 			return "***"
 
 		d = { # Map long to short surround names.
