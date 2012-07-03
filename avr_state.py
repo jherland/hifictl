@@ -86,8 +86,7 @@ class AVR_State(object):
 		pre_state = str(self)
 
 		# Trigger wake from standby if we just went from OFF -> STANDBY
-		if self.off and status.standby():
-			self.av_loop.submit_cmd("%s on" % (self.name))
+		wakeup = self.off and status.standby()
 
 		self.off = False
 		self.standby = status.standby() or self.off
@@ -113,6 +112,9 @@ class AVR_State(object):
 		self.line2 = status.line2
 
 		self.refresh_watchdog()
+
+		if wakeup:
+			self.av_loop.submit_cmd("%s on" % (self.name))
 
 		# Figure out if we actually changed state
 		post_state = str(self)
