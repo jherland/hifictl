@@ -28,6 +28,7 @@ class AVR_Device(AV_SerialDevice):
 		"mute": "MUTE",
 		"vol+": "VOL UP",
 		"vol-": "VOL DOWN",
+		"vol?": "VOL DOWN", # Trigger volume display
 
 		"surround 6ch":    "6CH/8CH",
 		"surround dolby":  "DOLBY",
@@ -71,13 +72,13 @@ class AVR_Device(AV_SerialDevice):
 
 		# set_to == False indicates that we've just written to the AVR.
 		# In that case, we should nominally delay the next write for
-		# about 1.0s.
+		# about a second.
 		#
 		# set_to == True indicates that we've just received an updated
 		# status from the AVR. In that case, we can reduce the
-		# remaining time-to-next-write down to about 0.2s
-		# (value determined by unscientific experiments)
-		deadline = time.time() + (set_to and 0.2 or 1.0)
+		# remaining time-to-next-write down to about a quarter second
+		# (value determined by unscientific experiments).
+		deadline = time.time() + (set_to and 0.25 or 1.0)
 		if set_to == False: # Disable writes for 1.0s
 			self.write_ready = False # Disable writes immediately
 			self._setup_write_timer(deadline)
@@ -115,6 +116,11 @@ class AVR_Device(AV_SerialDevice):
 		dgram_spec = AVR_Datagram.PC_AVR_Command
 		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
 		self.schedule_write(dgram)
+
+		# If volume is not currently showing, we need an extra trigger
+		if cmd[1] in ("vol+", "vol-") and not self.state.showing_volume:
+			self.schedule_write(dgram)
+			self.state.showing_volume = True
 
 
 def main(args):
