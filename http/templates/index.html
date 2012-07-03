@@ -7,32 +7,34 @@
 	<script src="/static/jquery-1.7.2.min.js"></script>
 	<script src="/static/jquery.mobile-1.1.0.min.js"></script>
 	<script>
-		function send_cmd(cmd) {
-			var data = "/" + cmd.replace(/ /g, "/");
-			var req = new XMLHttpRequest();
-			req.open("POST", encodeURIComponent(data), true);
-			req.send();
-		};
 
-		function parse_avr_state(e) {
-			var avr_state = JSON.parse(e.data)
-			var state_str = "Unknown"
-			if (avr_state) {
-				state_str  = $.trim(avr_state.line1) + "\n";
-				state_str += $.trim(avr_state.line2) + "\n";
-				if (avr_state.volume != null) {
-					state_str += avr_state.volume + "dB\n";
-				}
-				state_str += avr_state.source + "/" +
-					avr_state.channels_string + "\n";
-				state_str += avr_state.surround_string + "\n";
-				state_str += avr_state.speakers_string;
-			}
-			$('#avr_state').contents().replaceWith(state_str);
-		};
+function send_cmd(cmd) {
+	var data = "/" + cmd.replace(/ /g, "/");
+	var req = new XMLHttpRequest();
+	req.open("POST", encodeURIComponent(data), true);
+	req.send();
+};
 
-		var source = new EventSource('/events');
-		source.onmessage = parse_avr_state;
+function parse_avr_state(e) {
+	var avr_state = JSON.parse(e.data)
+	var state_str = "Unknown"
+	if (avr_state) {
+		state_str  = $.trim(avr_state.line1) + "\n";
+		state_str += $.trim(avr_state.line2) + "\n";
+		if (avr_state.volume != null) {
+			state_str += avr_state.volume + "dB\n";
+		}
+		state_str += avr_state.source + "/" +
+			avr_state.channels_string + "\n";
+		state_str += avr_state.surround_string + "\n";
+		state_str += avr_state.speakers_string;
+	}
+	$('#avr_state').contents().replaceWith(state_str);
+};
+
+var source = new EventSource('/events');
+source.onmessage = parse_avr_state;
+
 	</script>
 
 </head>
