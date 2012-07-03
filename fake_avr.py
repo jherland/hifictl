@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+import sys
 import pty
 import os
 import fcntl
@@ -15,35 +16,41 @@ class StatusQueue(object):
 	"""Encapsulate a queue of timed, future status messages."""
 
 	def __init__(self, default):
-		# Maintain a list of (timeout, status) pairs, sorted on timeout
-		# The last element is a (None, default status) pair.
-		self.q = [(None, default)]
+		# Maintain a list of (timeout, status) pairs, sorted on
+		# timeout (i.e. the absolute time (a la time.time() when
+		# the given status stops being valid)
+		self.q = [(sys.maxint, default)]
 
-	def add(self, timeout, status):
-		assert timeout is not None
-		i = 0
-		# Find appropriate place in self.q for the given status
-		while self.q[i][0] is not None and self.q[i][0] <= timeout:
-			i += 1
-		self.q.insert(i, (timeout, status))
-
-	def current(self, now):
+	def current(self):
 		"""Return the status appropriate for the given time.
 
 		Discard all expired statuses from the queue.
 		"""
+		now = time.time()
+
 		# Remove all leading entries whose timeout < nw
-		while self.q[0][0] is not None and self.q[0][0] < now:
+		while self.q[0][0] < now:
 			assert len(self.q)
-			del self.q[0]
+			self.q.pop(0)
 
 		# Return the first entry
-		assert self.q[0][0] is None or self.q[0][0] >= now
+		assert self.q[0][0] >= now
 		return self.q[0][1]
 
+	def add_absolute(self, timeout, status):
+		assert timeout > time.time()
+		i = 0
+		# Find appropriate place in self.q for the given status
+		while self.q[i][0] <= timeout:
+			i += 1
+		self.q.insert(i, (timeout, status))
+
+	def add_relative(self, rel_timeout, status):
+		return self.add_absolute(time.time() + rel_timeout, status)
+
 	def flush(self, new_default):
-		"""Empty the queue, and start anew with the given default."""
-		self.q = [(None, new_default)]
+		"""Empty the queue, and restart with a new default."""
+		self.q = [(sys.maxint, new_default)]
 
 
 class Fake_AVR(object):
@@ -53,36 +60,54 @@ class Fake_AVR(object):
 	AVR_Status messages.
 	"""
 
-	CommonStatus = {
-		"standby": AVR_Status(" " * 14, " " * 14, chr(0x00) * 14),
-		"on": AVR_Status("FAKE AVR      ", "DOLBY DIGITAL ",
-			"".join(map(chr, [0xc0, 0x00, 0x00, 0x00, 0xfd, 0xfb,
-					  0x7a, 0x00, 0xc0] + [0x00] * 5))),
+	EmptyIcons = chr(0x00) * 14
+	DefaultIcons = "".join(map(chr, [0xc0, 0x00, 0x00, 0x00,
+		0xfd, 0xfb, 0x7a, 0x00, 0xc0] + [0x00] * 5))
+
+	StatusMap = {
+		"standby": ("              ", "              ", EmptyIcons),
+		"default": ("FAKE AVR      ", "DOLBY DIGITAL ", DefaultIcons),
+		"mute":    ("     MUTE     ", "              ", DefaultIcons),
+		"volume":  ("FAKE AVR      ", "  VOL %(volume)3i dB  ", DefaultIcons),
 	}
 
 	def __init__(self):
-		self.start_time = time.time()
+		self.t0 = time.time()
 
 		self.standby = True
-		self.cur_vol = -40
+		self.mute    = False
+		self.volume  = -35 # dB
 
-		self.status_queue = StatusQueue(self.CommonStatus["standby"])
+		self.status_queue = StatusQueue(self.gen_status("standby"))
 
 	def status(self):
 		"""Return AVR_Status diagram for current state."""
-		return self.status_queue.current(time.time())
+		return self.status_queue.current()
+
+	def gen_status(self, key):
+		line1, line2, icons = self.StatusMap[key]
+		d = self.__dict__
+		return AVR_Status(line1 % d, line2 % d, icons)
 
 	def handle_command(self, cmd):
 		now = time.time()
-		print "(%fs) Received %s" % (now - self.start_time, cmd)
-		if cmd.keyword == "POWER ON":
-			assert self.standby
-			self.standby = False
-			self.status_queue.flush(self.CommonStatus["on"])
-		elif cmd.keyword == "POWER OFF":
-			assert not self.standby
-			self.standby = True
-			self.status_queue.flush(self.CommonStatus["standby"])
+		print "%7.2f: %10s" % (now - self.t0, cmd.keyword),
+		if self.standby:
+			if cmd.keyword == "POWER ON":
+				self.standby = False
+				self.status_queue.flush(self.gen_status("default"))
+		else:
+			if cmd.keyword == "POWER OFF":
+				self.standby = True
+				self.status_queue.flush(self.gen_status("standby"))
+			elif cmd.keyword == "MUTE":
+				self.mute = not self.mute
+				self.status_queue.flush(self.gen_status(self.mute and "mute" or "default"))
+			elif cmd.keyword == "VOL DOWN" or cmd.keyword == "VOL UP":
+				self.volume += cmd.keyword == "VOL DOWN" and -1 or +1
+				self.status_queue.flush(self.gen_status("default"))
+				self.status_queue.add_relative(3, self.gen_status("volume"))
+		print "->", self.status()
 
 
 def main(args):
@@ -135,5 +160,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-	import sys
 	sys.exit(main(sys.argv[1:]))
