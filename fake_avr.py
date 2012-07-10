@@ -1,56 +1,15 @@
 #!/usr/bin/env python2
 
-import sys
 import pty
 import os
 import fcntl
 import termios
 import time
 
+from timed_queue import TimedQueue
 from avr_dgram import AVR_Datagram
 from avr_status import AVR_Status
 from avr_command import AVR_Command
-
-
-class StatusQueue(object):
-	"""Encapsulate a queue of timed, future status messages."""
-
-	def __init__(self, default):
-		# Maintain a list of (timeout, status) pairs, sorted on
-		# timeout (i.e. the absolute time (a la time.time() when
-		# the given status stops being valid)
-		self.q = [(sys.maxint, default)]
-
-	def current(self):
-		"""Return the status appropriate for the given time.
-
-		Discard all expired statuses from the queue.
-		"""
-		now = time.time()
-
-		# Remove all leading entries whose timeout < nw
-		while self.q[0][0] < now:
-			assert len(self.q)
-			self.q.pop(0)
-
-		# Return the first entry
-		assert self.q[0][0] >= now
-		return self.q[0][1]
-
-	def add_absolute(self, timeout, status):
-		assert timeout > time.time()
-		i = 0
-		# Find appropriate place in self.q for the given status
-		while self.q[i][0] <= timeout:
-			i += 1
-		self.q.insert(i, (timeout, status))
-
-	def add_relative(self, rel_timeout, status):
-		return self.add_absolute(time.time() + rel_timeout, status)
-
-	def flush(self, new_default):
-		"""Empty the queue, and restart with a new default."""
-		self.q = [(sys.maxint, new_default)]
 
 
 class Fake_AVR(object):
@@ -78,7 +37,7 @@ class Fake_AVR(object):
 		self.mute    = False
 		self.volume  = -35 # dB
 
-		self.status_queue = StatusQueue(self.gen_status("standby"))
+		self.status_queue = TimedQueue(self.gen_status("standby"))
 
 	def status(self):
 		"""Return AVR_Status diagram for current state."""
@@ -160,4 +119,5 @@ def main(args):
 
 
 if __name__ == '__main__':
+	import sys
 	sys.exit(main(sys.argv[1:]))
