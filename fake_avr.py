@@ -12,6 +12,43 @@ from avr_status import AVR_Status
 from avr_command import AVR_Command
 
 
+class Fake_SerialDevice(object):
+	"""Create a local serial-port-like device that can be used to
+	impersonate real devices connected to a serial port.
+
+	This is useful for testing programs communicating with a serial
+	device when the serial device is not available.
+	"""
+
+	def __init__(self):
+		self.master, self.slave = pty.openpty()
+		self._client_name = os.ttyname(self.slave)
+
+		# Close the slave descriptor. It will be reopened by the client
+		os.close(self.slave)
+
+		# Make the master descriptor non-blocking.
+		fl = fcntl.fcntl(self.master, fcntl.F_GETFL)
+		fcntl.fcntl(self.master, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+		# Backup old term settings and setup new settings
+		self.term = termios.tcgetattr(self.master)
+		newterm = termios.tcgetattr(self.master)
+		newterm[3] = newterm[3] & ~termios.ECHO # lflags
+		termios.tcsetattr(self.master, termios.TCSAFLUSH, newterm)
+
+	def __del__(self):
+		# Close the remaining descriptor
+		termios.tcsetattr(self.master, termios.TCSAFLUSH, self.term)
+		os.close(self.master)
+
+	def fileno(self):
+		return self.master
+
+	def client_name(self):
+		return self._client_name
+
+
 class Fake_AVR(object):
 	"""Impersonate an AVR unit.
 
@@ -70,21 +107,8 @@ class Fake_AVR(object):
 
 
 def main(args):
-	master, slave = pty.openpty()
-	print "You can now start ./av_control.py --avr %s" % (os.ttyname(slave))
-
-	# Close the slave descriptor. It will be reopened by the client
-	os.close(slave)
-
-	# Make the master descriptor non-blocking.
-	fl = fcntl.fcntl(master, fcntl.F_GETFL)
-	fcntl.fcntl(master, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-
-	# Backup old term settings and setup new settings
-	oldterm = termios.tcgetattr(master)
-	newterm = termios.tcgetattr(master)
-	newterm[3] = newterm[3] & ~termios.ECHO # lflags
-	termios.tcsetattr(master, termios.TCSAFLUSH, newterm)
+	tty = Fake_SerialDevice()
+	print "You can now start ./av_control.py --avr %s" % (tty.client_name())
 
 	# Repeatedly send status info every 5/100 seconds, until user aborts
 	avr = Fake_AVR()
@@ -95,9 +119,9 @@ def main(args):
 	try:
 		while True:
 			try:
-				recv_data += os.read(master, 1024)
+				recv_data += os.read(tty.fileno(), 1024)
 			except OSError as e:
-				if e.errno not in [5, 11]:
+				if e.errno not in (5, 11): # EIO or EAGAIN
 					raise e
 			while len(recv_data) >= recv_dgram_len:
 				dgram = recv_data[:recv_dgram_len]
@@ -107,14 +131,12 @@ def main(args):
 						dgram, recv_dgram_spec)))
 
 			time.sleep(0.05)
-			os.write(master, AVR_Datagram.build_dgram(
+			os.write(tty.fileno(), AVR_Datagram.build_dgram(
 				avr.status().dgram(), send_dgram_spec))
 	except KeyboardInterrupt:
 		pass
 
-	# Close the remaining descriptor
-	termios.tcsetattr(master, termios.TCSAFLUSH, oldterm)
-	os.close(master)
+	del tty
 	return 0
 
 
