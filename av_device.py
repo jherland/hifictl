@@ -9,7 +9,7 @@ class AV_Device(object):
 	Debug = False
 
 	@classmethod
-	def register_args(cls, arg_parser):
+	def register_args(cls, name, arg_parser):
 		"""Must be overridden if you want to add cmdline params."""
 		pass
 
