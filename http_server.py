@@ -30,19 +30,20 @@ class EventHandler(RequestHandler):
 
 	def initialize(self):
 		self.application.av_loop.add_cmd_handler(
-			"avr update", self.emit)
+			"avr update", self.emit_avr_update)
 
 	def on_connection_close(self):
 		self.application.av_loop.remove_cmd_handler(
-			"avr update", self.emit)
+			"avr update", self.emit_avr_update)
 
 	def prepare(self):
 		self.set_header('Content-Type', 'text/event-stream')
 		self.set_header('Cache-Control', 'no-cache')
 
-		self.emit()
+		self.emit_avr_update()
 
-	def emit(self, *args):
+	def emit_avr_update(self, *args):
+		self.write("event: avr_update\n")
 		try:
 			state = self.application.av_loop.devices["avr"].state
 			for line in state.json().split("\n"):

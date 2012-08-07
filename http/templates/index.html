@@ -75,7 +75,7 @@ function parse_avr_state(e) {
 }
 
 var source = new EventSource('/events');
-source.onmessage = parse_avr_state;
+source.addEventListener('avr_update', parse_avr_state, false);
 
 	</script>
 </head>
