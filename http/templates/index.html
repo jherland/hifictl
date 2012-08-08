@@ -83,10 +83,12 @@ function set_connected(is_connected) {
 	}
 	// Show a dialog while (re)connecting, and hide it when done
 	if (!is_connected) {
+		ui_enable('#controls_page', false);
 		$.mobile.showPageLoadingMsg(
 			'a', 'Reconnecting to event server', true);
 	}
 	else {
+		ui_enable('#controls_page', true);
 		$.mobile.hidePageLoadingMsg();
 	}
 	connected = is_connected;
@@ -128,7 +130,7 @@ window.onload = connect_event_source;
 </head>
 <body>
 
-<div data-role="page" id="controls_page" style="text-align: center">
+<div data-role="page" id="controls_page" class="ui-disabled" style="text-align: center">
 
 <div data-role="header">
 	<h1>A/V remote control</h1>
