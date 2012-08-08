@@ -8,6 +8,7 @@
 	<script src="/static/jquery.mobile-1.1.0.min.js"></script>
 	<script>
 
+var event_source = null;
 var watchdog = null;
 
 function send_cmd(cmd) {
@@ -76,7 +77,17 @@ function parse_avr_state(e) {
 }
 
 function lost_connection() {
+	// Throw up a fullscreen dialog noting the LOST CONNECTION TO SERVER.
 	alert("LOST CONNECTION TO SERVER");
+	event_source.close();
+	connect_event_source();
+}
+
+function maybe_lost_connection() {
+	if (event_source.readyState == 2) { // event_source is CLOSED
+		lost_connection();
+	}
+	// Else hope that event_source manages to re-sync itself
 }
 
 function reset_watchdog() {
@@ -86,13 +97,15 @@ function reset_watchdog() {
 	watchdog = setTimeout(lost_connection, 5000);
 }
 
-window.onload = function() {
-	var source = new EventSource('/events');
-	source.addEventListener('open', reset_watchdog, false);
-	source.addEventListener('error', lost_connection, false);
-	source.addEventListener('heartbeat', reset_watchdog, false);
-	source.addEventListener('avr_update', parse_avr_state, false);
+function connect_event_source() {
+	event_source = new EventSource('/events');
+	event_source.addEventListener('open', reset_watchdog, false);
+	event_source.addEventListener('error', maybe_lost_connection, false);
+	event_source.addEventListener('heartbeat', reset_watchdog, false);
+	event_source.addEventListener('avr_update', parse_avr_state, false);
 }
+
+window.onload = connect_event_source;
 
 	</script>
 </head>
