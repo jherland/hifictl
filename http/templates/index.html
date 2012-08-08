@@ -10,6 +10,7 @@
 
 var event_source = null;
 var watchdog = null;
+var connecting = false;
 
 function send_cmd(cmd) {
 	var url = "/" + cmd.replace(/ /g, "/");
@@ -76,9 +77,23 @@ function parse_avr_state(e) {
 	}
 }
 
+function set_connecting(is_connecting) {
+	if (is_connecting == connecting) {
+		return; // No change
+	}
+	// Show a dialog while connecting, and hide it when done
+	if (is_connecting) {
+		$.mobile.showPageLoadingMsg(
+			'a', 'Reconnecting to event server', true);
+	}
+	else {
+		$.mobile.hidePageLoadingMsg();
+	}
+	connecting = is_connecting;
+}
+
 function lost_connection() {
-	// Throw up a fullscreen dialog noting the LOST CONNECTION TO SERVER.
-	alert("LOST CONNECTION TO SERVER");
+	set_connecting(true);
 	event_source.close();
 	connect_event_source();
 }
@@ -95,6 +110,7 @@ function reset_watchdog() {
 		clearTimeout(watchdog);
 	}
 	watchdog = setTimeout(lost_connection, 5000);
+	set_connecting(false);
 }
 
 function connect_event_source() {
@@ -103,6 +119,7 @@ function connect_event_source() {
 	event_source.addEventListener('error', maybe_lost_connection, false);
 	event_source.addEventListener('heartbeat', reset_watchdog, false);
 	event_source.addEventListener('avr_update', parse_avr_state, false);
+	set_connecting(true);
 }
 
 window.onload = connect_event_source;
