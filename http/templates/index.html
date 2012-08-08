@@ -8,6 +8,8 @@
 	<script src="/static/jquery.mobile-1.1.0.min.js"></script>
 	<script>
 
+var watchdog = null;
+
 function send_cmd(cmd) {
 	var url = "/" + cmd.replace(/ /g, "/");
 	$.ajax({
@@ -69,13 +71,28 @@ function parse_avr_state(e) {
 		$('#avr_volume .ui-btn-text').text(vol + "| Mute");
 	}
 	if (s.mute) {
-		$('#avr_volume .ui-btn-text').text("Unmute")
+		$('#avr_volume .ui-btn-text').text("Unmute");
 	}
-
 }
 
-var source = new EventSource('/events');
-source.addEventListener('avr_update', parse_avr_state, false);
+function lost_connection() {
+	alert("LOST CONNECTION TO SERVER");
+}
+
+function reset_watchdog() {
+	if (watchdog) {
+		clearTimeout(watchdog);
+	}
+	watchdog = setTimeout(lost_connection, 5000);
+}
+
+window.onload = function() {
+	var source = new EventSource('/events');
+	source.addEventListener('open', reset_watchdog, false);
+	source.addEventListener('error', lost_connection, false);
+	source.addEventListener('heartbeat', reset_watchdog, false);
+	source.addEventListener('avr_update', parse_avr_state, false);
+}
 
 	</script>
 </head>
