@@ -111,50 +111,16 @@ window.onload = connect_event_source;
 </head>
 <body>
 
-<div data-role="page" id="main_page" style="text-align: center">
+<div data-role="page" id="controls_page" style="text-align: center">
 
 <div data-role="header">
-	<h1>A/V Controller</h1>
-{% if "hdmi on" in cmd_handlers %}
-	<a href="#hdmi_page" data-role="button" data-icon="arrow-l"
-	   data-iconpos="left">HDMI</a>
-{% end %}
-{% if "avr on" in cmd_handlers %}
-	<a href="#avr_page" data-role="button" data-icon="arrow-r"
-	   data-iconpos="right" class="ui-btn-right">AVR</a>
-{% end %}
-</div>
-
-<div data-role="content">
-{% if "avr on" in cmd_handlers %}
-	<a href="#avr_page" data-role="button">Surround Receiver</a>
-{% end %}
-{% if "hdmi on" in cmd_handlers %}
-	<a href="#hdmi_page" data-role="button">HDMI Switch</a>
-{% end %}
-</div>
-
-<div data-role="footer">
-	<p>by Johan Herland
-	&lt;<a href="mailto:johan@herland.net">johan@herland.net</a>&gt;</p>
-</div>
-
+	<h1>A/V remote control</h1>
 </div>
 
 {% if "avr on" in cmd_handlers %}
-<div data-role="page" id="avr_page" style="text-align: center">
-
-<div data-role="header">
-	<h1>Surround Receiver</h1>
-	<a href="#main_page" data-role="button" data-icon="arrow-l"
-	   data-iconpos="left">Main</a>
-{% if "hdmi on" in cmd_handlers %}
-	<a href="#hdmi_page" data-role="button" data-icon="arrow-r"
-	   data-iconpos="right" class="ui-btn-right">HDMI</a>
-{% end %}
-</div>
-
 <div data-role="content" id="avr_controls">
+	<h2>Surround Receiver</h2>
+
 	<span id="avr_button_on">
 		<button onclick="send_cmd('avr on')"
 			data-inline="true"
@@ -181,6 +147,7 @@ window.onload = connect_event_source;
 			</button>
 		</span>
 	</span>
+
 	<div id="avr_volumecontrols" data-role="controlgroup" data-type="horizontal">
 		<button onclick="repeat_cmd('avr vol-', 5)"><b>-5</b></button>
 		<button onclick="send_cmd('avr vol-')"><b>-1</b></button>
@@ -192,29 +159,15 @@ window.onload = connect_event_source;
 		<button onclick="send_cmd('avr vol+')"><b>+1</b></button>
 		<button onclick="repeat_cmd('avr vol+', 5)"><b>+5</b></button>
 	</div>
-</div>
 
-<div data-role="footer">
 	<div id="avr_state"><p>Initializing...</p></div>
-</div>
-
 </div>
 {% end %}
 
 {% if "hdmi on" in cmd_handlers %}
-<div data-role="page" id="hdmi_page" style="text-align: center">
-
-<div data-role="header">
-	<h1>HDMI Switch</h1>
-{% if "avr on" in cmd_handlers %}
-	<a href="#avr_page" data-role="button" data-icon="arrow-l"
-	   data-iconpos="left">AVR</a>
-{% end %}
-	<a href="#main_page" data-role="button" data-icon="arrow-r"
-	   data-iconpos="right" class="ui-btn-right">Main</a>
-</div>
-
 <div data-role="content" id="hdmi_controls">
+	<h2>HDMI Switch</h2>
+
 	<div data-role="controlgroup" data-type="horizontal">
 		<button onclick="send_cmd('hdmi on')" data-theme="a">On/Off</button>
 		<button onclick="send_cmd('hdmi 1')">HTPC</button>
@@ -222,14 +175,17 @@ window.onload = connect_event_source;
 		<button onclick="send_cmd('hdmi 3')">PS3</button>
 		<!-- <button onclick="send_cmd('hdmi 4')">Wii</button> -->
 	</div>
-</div>
 
-<div data-role="footer">
 	<pre id="hdmi_state">???</pre>
 </div>
+{% end %}
+
+<div data-role="footer">
+	<p>by Johan Herland
+	&lt;<a href="mailto:johan@herland.net">johan@herland.net</a>&gt;</p>
+</div>
 
 </div>
-{% end %}
 
 </body>
 </html>
