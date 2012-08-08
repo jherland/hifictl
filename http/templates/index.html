@@ -83,9 +83,13 @@ function set_connected(is_connected) {
 	}
 	// Show a dialog while (re)connecting, and hide it when done
 	if (!is_connected) {
+		var txt = 'Reconnecting to event server';
+		if (connected == null) {
+			// First time connecting
+			txt = 'Connecting to event server';
+		}
 		ui_enable('#controls_page', false);
-		$.mobile.showPageLoadingMsg(
-			'a', 'Reconnecting to event server', true);
+		$.mobile.showPageLoadingMsg('a', txt, true);
 	}
 	else {
 		ui_enable('#controls_page', true);
