@@ -28,12 +28,12 @@ function repeat_cmd(cmd, repeats) {
 	}
 }
 
-function ui_disable(selector, disable) {
-	if (disable) {
-		$(selector).addClass('ui-disabled');
+function ui_enable(selector, enable) {
+	if (enable) {
+		$(selector).removeClass('ui-disabled');
 	}
 	else {
-		$(selector).removeClass('ui-disabled');
+		$(selector).addClass('ui-disabled');
 	}
 }
 
@@ -44,13 +44,13 @@ function parse_avr_state(e) {
 		return $('#avr_state').html("<p>Unknown</p>");
 	}
 
-	ui_disable('#avr_controls', s.off);
+	ui_enable('#avr_controls', !s.off);
 	if (s.off) {
 		return $('#avr_state').html("<p>Off</p>");
 	}
 
-	ui_disable('#avr_surroundcontrols', s.standby);
-	ui_disable('#avr_volumecontrols', s.standby);
+	ui_enable('#avr_surroundcontrols', !s.standby);
+	ui_enable('#avr_volumecontrols', !s.standby);
 	$('#avr_button_on').toggle(s.standby);
 	$('#avr_button_off').toggle(!s.standby);
 	if (s.standby) {
@@ -135,7 +135,7 @@ window.onload = connect_event_source;
 </div>
 
 {% if "avr on" in cmd_handlers %}
-<div data-role="content" id="avr_controls">
+<div data-role="content" id="avr_controls" class="ui-disabled">
 	<h2>Surround Receiver</h2>
 
 	<span id="avr_button_on">
@@ -182,7 +182,7 @@ window.onload = connect_event_source;
 {% end %}
 
 {% if "hdmi on" in cmd_handlers %}
-<div data-role="content" id="hdmi_controls">
+<div data-role="content" id="hdmi_controls" class="ui-disabled">
 	<h2>HDMI Switch</h2>
 
 	<div data-role="controlgroup" data-type="horizontal">
