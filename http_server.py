@@ -20,9 +20,7 @@ class IndexHandler(RequestHandler):
 			avr_state = None
 
 		self.write(app.templates.load("index.html").generate(
-			avr_state = avr_state,
 			cmd_handlers = app.av_loop.cmd_handlers,
-			last_cmd = self.get_argument("cmd", None),
 		))
 
 
