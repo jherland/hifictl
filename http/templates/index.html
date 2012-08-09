@@ -13,6 +13,8 @@ var event_source = null;
 var watchdog = null;
 var connected = null;
 
+var avr_standby = true;
+
 function send_cmd(cmd) {
 	var url = "/" + cmd.replace(/ /g, "/");
 	$.ajax({
@@ -38,6 +40,10 @@ function ui_enable(selector, enable) {
 	}
 }
 
+function avr_standby_toggle() {
+	send_cmd(avr_standby ? "avr on" : "avr off");
+}
+
 function parse_avr_state(e) {
 	var s = JSON.parse(e.data); // extract AVR state info
 
@@ -52,8 +58,7 @@ function parse_avr_state(e) {
 
 	ui_enable('#avr_surroundcontrols', !s.standby);
 	ui_enable('#avr_volumecontrols', !s.standby);
-	$('#avr_button_on').toggle(s.standby);
-	$('#avr_button_off').toggle(!s.standby);
+	avr_standby = s.standby;
 	if (s.standby) {
 		return $('#avr_state').html("<p>Standby</p>");
 	}
@@ -145,16 +150,9 @@ window.onload = connect_event_source;
 <div data-role="content" id="avr_controls" class="ui-disabled">
 	<h2>Surround Receiver</h2>
 
-	<span id="avr_button_on">
-		<a onclick="send_cmd('avr on')" data-inline="true" data-theme="a" data-role="button">
-			<i class="icon-off"></i>
-		</a>
-	</span>
-	<span id="avr_button_off">
-		<a onclick="send_cmd('avr off')" data-inline="true" data-theme="a" data-role="button">
-			<i class="icon-off"></i>
-		</a>
-	</span>
+	<a onclick="avr_standby_toggle()" data-inline="true" data-theme="a" data-role="button">
+		<i class="icon-off"></i>
+	</a>
 	<span id="avr_surroundcontrols" data-role="controlgroup" data-type="horizontal">
 		<!-- <a onclick="send_cmd('avr surround 6ch')" data-role="button">
 			5.1
