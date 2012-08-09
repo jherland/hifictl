@@ -3,6 +3,7 @@
 <head>
 	<title>A/V remote control</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="/static/FortAwesome-Font-Awesome-ee55c85/css/font-awesome.css" />
 	<link rel="stylesheet" href="/static/jquery.mobile-1.1.0.min.css" />
 	<script src="/static/jquery-1.7.2.min.js"></script>
 	<script src="/static/jquery.mobile-1.1.0.min.js"></script>
@@ -70,10 +71,10 @@ function parse_avr_state(e) {
 
 	if (s.volume != null) {
 		var vol = s.volume + "dB\n";
-		$('#avr_volume .ui-btn-text').text(vol + "| Mute");
+		$('#avr_volume').text(vol);
 	}
 	if (s.mute) {
-		$('#avr_volume .ui-btn-text').text("Unmute");
+		$('#avr_volume').text("Muted");
 	}
 }
 
@@ -145,42 +146,48 @@ window.onload = connect_event_source;
 	<h2>Surround Receiver</h2>
 
 	<span id="avr_button_on">
-		<button onclick="send_cmd('avr on')"
-			data-inline="true"
-			data-theme="a">On</button>
+		<a onclick="send_cmd('avr on')" data-inline="true" data-theme="a" data-role="button">
+			<i class="icon-off"></i>
+		</a>
 	</span>
 	<span id="avr_button_off">
-		<button onclick="send_cmd('avr off')"
-			data-inline="true"
-			data-theme="a">Off</button>
+		<a onclick="send_cmd('avr off')" data-inline="true" data-theme="a" data-role="button">
+			<i class="icon-off"></i>
+		</a>
 	</span>
-	<span id="avr_surroundcontrols">
-		<span data-role="controlgroup" data-type="horizontal">
-			<!-- <button onclick="send_cmd('avr surround 6ch')">
-				5.1
-			</button> -->
-			<button onclick="send_cmd('avr surround dolby')">
-				<!-- Dolby -->Surround
-			</button>
-			<!-- <button onclick="send_cmd('avr surround dts')">
-				DTS
-			</button> -->
-			<button onclick="send_cmd('avr surround stereo')">
-				Stereo
-			</button>
-		</span>
+	<span id="avr_surroundcontrols" data-role="controlgroup" data-type="horizontal">
+		<!-- <a onclick="send_cmd('avr surround 6ch')" data-role="button">
+			5.1
+		</a> -->
+		<a onclick="send_cmd('avr surround dolby')" data-role="button">
+			<!-- Dolby -->Surround
+		</a>
+		<!-- <a onclick="send_cmd('avr surround dts')" data-role="button">
+			DTS
+		</a> -->
+		<a onclick="send_cmd('avr surround stereo')" data-role="button">
+			Stereo
+		</a>
 	</span>
 
 	<div id="avr_volumecontrols" data-role="controlgroup" data-type="horizontal">
-		<button onclick="repeat_cmd('avr vol-', 5)"><b>-5</b></button>
-		<button onclick="send_cmd('avr vol-')"><b>-1</b></button>
-		<span id="avr_volume">
-			<button onclick="send_cmd('avr mute')" data-theme="b">
-				Mute
-			</button>
-		</span>
-		<button onclick="send_cmd('avr vol+')"><b>+1</b></button>
-		<button onclick="repeat_cmd('avr vol+', 5)"><b>+5</b></button>
+		<a onclick="repeat_cmd('avr vol-', 5)" data-role="button">
+			5<i class="icon-volume-down"></i>
+		</a>
+		<a onclick="send_cmd('avr vol-')" data-role="button">
+			<i class="icon-volume-down"></i>
+		</a>
+		<a onclick="send_cmd('avr mute')" data-theme="b" data-role="button">
+			<i class="icon-volume-off"></i>
+			<span id="avr_volume">Unknown</span>
+			<i class="icon-volume-off"></i>
+		</a>
+		<a onclick="send_cmd('avr vol+')" data-role="button">
+			<i class="icon-volume-up"></i>
+		</a>
+		<a onclick="repeat_cmd('avr vol+', 5)" data-role="button">
+			5<i class="icon-volume-up"></i>
+		</a>
 	</div>
 
 	<div id="avr_state"><p>Initializing...</p></div>
@@ -191,13 +198,15 @@ window.onload = connect_event_source;
 <div data-role="content" id="hdmi_controls" class="ui-disabled">
 	<h2>HDMI Switch</h2>
 
-	<div data-role="controlgroup" data-type="horizontal">
-		<button onclick="send_cmd('hdmi on')" data-theme="a">On/Off</button>
-		<button onclick="send_cmd('hdmi 1')">HTPC</button>
-		<button onclick="send_cmd('hdmi 2')">Get</button>
-		<button onclick="send_cmd('hdmi 3')">PS3</button>
-		<button onclick="send_cmd('hdmi 4')">Wii</button>
-	</div>
+	<a onclick="send_cmd('hdmi on')" data-inline="true" data-theme="a" data-role="button">
+		<i class="icon-off"></i>
+	</a>
+	<span data-role="controlgroup" data-type="horizontal">
+		<a onclick="send_cmd('hdmi 1')" data-role="button">HTPC</a>
+		<a onclick="send_cmd('hdmi 2')" data-role="button">Get</a>
+		<a onclick="send_cmd('hdmi 3')" data-role="button">PS3</a>
+		<a onclick="send_cmd('hdmi 4')" data-role="button">Wii</a>
+	</span>
 
 	<pre id="hdmi_state">???</pre>
 </div>
