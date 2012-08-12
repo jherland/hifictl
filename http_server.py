@@ -2,24 +2,10 @@
 
 import os
 import time
-from tornado.web import RequestHandler, Application, StaticFileHandler, asynchronous
+from tornado.web import RequestHandler, Application, RedirectHandler, StaticFileHandler, asynchronous
 from tornado.escape import xhtml_escape, url_escape
-from tornado.template import Loader
 
 from av_device import AV_Device
-
-
-class IndexHandler(RequestHandler):
-
-	def get(self, path):
-		app = self.application
-
-		try:
-			avr_state = app.av_loop.devices["avr"].state
-		except KeyError:
-			avr_state = None
-
-		self.write(app.templates.load("index.html").generate())
 
 
 class EventHandler(RequestHandler):
@@ -110,17 +96,16 @@ class AV_HTTPServer(AV_Device, Application):
 		AV_Device.__init__(self, av_loop, name)
 		self.docroot = av_loop.args['%s_root' % (self.name)]
 		Application.__init__(self, [
+			(r"/", RedirectHandler, {"url": "/index.html"}),
 			(r"/(static/.*)",   StaticFileHandler,
 				{"path": self.docroot}),
 			(r"/(favicon.ico)", StaticFileHandler,
 				{"path": self.docroot}),
-			(r"/(index.html)?", IndexHandler),
+			(r"/(index.html)", StaticFileHandler,
+				{"path": self.docroot}),
 			(r"/events",        EventHandler),
 			(r"/(.*)",          AV_CommandHandler),
 		], debug = self.Debug)
-
-		# Template loader (and cache)
-		self.templates = Loader(os.path.join(self.docroot, "templates"))
 
 		self.server_host = av_loop.args["%s_host" % (self.name)]
 		self.server_port = int(av_loop.args["%s_port" % (self.name)])
