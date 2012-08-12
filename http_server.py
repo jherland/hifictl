@@ -19,9 +19,7 @@ class IndexHandler(RequestHandler):
 		except KeyError:
 			avr_state = None
 
-		self.write(app.templates.load("index.html").generate(
-			cmd_handlers = app.av_loop.cmd_handlers,
-		))
+		self.write(app.templates.load("index.html").generate())
 
 
 class EventHandler(RequestHandler):

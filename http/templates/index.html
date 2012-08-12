@@ -157,7 +157,6 @@ window.onload = connect_event_source;
 	<h1>A/V remote control</h1>
 </div>
 
-{% if "avr on" in cmd_handlers %}
 <div data-role="content" id="avr_controls" class="ui-disabled">
 	<h2>Surround Receiver</h2>
 
@@ -213,9 +212,7 @@ window.onload = connect_event_source;
 	</div>
 
 </div>
-{% end %}
 
-{% if "hdmi on" in cmd_handlers %}
 <div data-role="content" id="hdmi_controls">
 	<h2>HDMI Switch</h2>
 
@@ -231,7 +228,6 @@ window.onload = connect_event_source;
 		<a onclick="send_cmd('hdmi 4')" data-role="button">Wii</a>
 	</div>
 </div>
-{% end %}
 
 <div data-role="footer">
 	<p>by Johan Herland
