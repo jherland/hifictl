@@ -193,7 +193,7 @@ window.onload = connect_event_source;
 {% end %}
 
 {% if "hdmi on" in cmd_handlers %}
-<div data-role="content" id="hdmi_controls" class="ui-disabled">
+<div data-role="content" id="hdmi_controls">
 	<h2>HDMI Switch</h2>
 
 	<a onclick="send_cmd('hdmi on')" data-inline="true" data-theme="a" data-role="button">
