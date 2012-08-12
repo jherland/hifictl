@@ -2,13 +2,13 @@
 
 import os
 import time
-from tornado.web import RequestHandler, Application, RedirectHandler, StaticFileHandler, asynchronous
+import tornado.web
 from tornado.escape import xhtml_escape, url_escape
 
 from av_device import AV_Device
 
 
-class EventHandler(RequestHandler):
+class EventHandler(tornado.web.RequestHandler):
 
 	def initialize(self):
 		self.application.av_loop.add_cmd_handler(
@@ -51,11 +51,11 @@ class EventHandler(RequestHandler):
 		self.write("\n")
 		self.flush()
 
-	@asynchronous
+	@tornado.web.asynchronous
 	def get(self):
 		pass
 
-class AV_CommandHandler(RequestHandler):
+class AV_CommandHandler(tornado.web.RequestHandler):
 
 	def get(self, path):
 		# Turn self.path into an A/V command and submit it
@@ -65,7 +65,7 @@ class AV_CommandHandler(RequestHandler):
 	post = get
 
 
-class AV_HTTPServer(AV_Device, Application):
+class AV_HTTPServer(AV_Device, tornado.web.Application):
 
 	Description = "A/V controller HTTP server"
 
@@ -95,16 +95,20 @@ class AV_HTTPServer(AV_Device, Application):
 	def __init__(self, av_loop, name):
 		AV_Device.__init__(self, av_loop, name)
 		self.docroot = av_loop.args['%s_root' % (self.name)]
-		Application.__init__(self, [
-			(r"/", RedirectHandler, {"url": "/index.html"}),
-			(r"/static/(.*)",   StaticFileHandler,
+		tornado.web.Application.__init__(self, [
+			(r"/", tornado.web.RedirectHandler,
+				{"url": "/index.html"}),
+			(r"/static/(.*)",   tornado.web.StaticFileHandler,
 				{"path": self.docroot}),
-			(r"/(favicon.ico)", StaticFileHandler,
+			(r"/(favicon.ico)", tornado.web.StaticFileHandler,
 				{"path": self.docroot}),
-			(r"/(index.html)", StaticFileHandler,
+			(r"/(index.html)", tornado.web.StaticFileHandler,
 				{"path": self.docroot}),
 			(r"/events",        EventHandler),
 			(r"/(.*)",          AV_CommandHandler),
+			# TODO: Move all A/V commands to the /cmd "subdir",
+			# and replace all StaticFileHandlers with a single
+			# (r"/(.*)", StaticFileHandler, {"path": self.docroot}).
 		], debug = self.Debug)
 
 		self.server_host = av_loop.args["%s_host" % (self.name)]
