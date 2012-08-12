@@ -3,8 +3,8 @@
 <head>
 	<title>A/V remote control</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="/static/FortAwesome-Font-Awesome-ee55c85/css/font-awesome.css" />
-	<link rel="stylesheet" href="/static/jquery.mobile-1.1.0.min.css" />
+	<link rel="stylesheet" href="/FortAwesome-Font-Awesome-ee55c85/css/font-awesome.css" />
+	<link rel="stylesheet" href="/jquery.mobile-1.1.0.min.css" />
 	<style type="text/css">
 
 h2 {
@@ -20,8 +20,8 @@ pre#avr_state {
 }
 
 	</style>
-	<script src="/static/jquery-1.7.2.min.js"></script>
-	<script src="/static/jquery.mobile-1.1.0.min.js"></script>
+	<script src="/jquery-1.7.2.min.js"></script>
+	<script src="/jquery.mobile-1.1.0.min.js"></script>
 	<script>
 
 var event_source = null;
@@ -31,11 +31,12 @@ var connected = null;
 var avr_standby = true;
 
 function send_cmd(cmd) {
-	var url = "/" + cmd.replace(/ /g, "/");
-	$.ajax({
-		url: encodeURIComponent(url),
-		type: 'POST'
-	});
+	var components = cmd.split(" ");
+	var cmd_url = "/cmd";
+	for (var i = 0; i < components.length; i++) {
+		cmd_url += "/" + encodeURIComponent(components[i]);
+	}
+	$.ajax({ type: 'POST', url: cmd_url });
 }
 
 function repeat_cmd(cmd, repeats) {

@@ -96,19 +96,12 @@ class AV_HTTPServer(AV_Device, tornado.web.Application):
 		AV_Device.__init__(self, av_loop, name)
 		self.docroot = av_loop.args['%s_root' % (self.name)]
 		tornado.web.Application.__init__(self, [
+			(r"/events", EventHandler),
+			(r"/cmd/(.*)", AV_CommandHandler),
 			(r"/", tornado.web.RedirectHandler,
 				{"url": "/index.html"}),
-			(r"/static/(.*)",   tornado.web.StaticFileHandler,
+			(r"/(.*)", tornado.web.StaticFileHandler,
 				{"path": self.docroot}),
-			(r"/(favicon.ico)", tornado.web.StaticFileHandler,
-				{"path": self.docroot}),
-			(r"/(index.html)", tornado.web.StaticFileHandler,
-				{"path": self.docroot}),
-			(r"/events",        EventHandler),
-			(r"/(.*)",          AV_CommandHandler),
-			# TODO: Move all A/V commands to the /cmd "subdir",
-			# and replace all StaticFileHandlers with a single
-			# (r"/(.*)", StaticFileHandler, {"path": self.docroot}).
 		], debug = self.Debug)
 
 		self.server_host = av_loop.args["%s_host" % (self.name)]
