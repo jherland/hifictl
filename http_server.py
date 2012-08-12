@@ -69,7 +69,7 @@ class AV_HTTPServer(AV_Device, Application):
 
 	Description = "A/V controller HTTP server"
 
-	DefaultStaticRoot = "./http"
+	DefaultStaticRoot = "./http_static"
 
 	DefaultListenHost = ""
 	DefaultListenPort = 8000
@@ -97,7 +97,7 @@ class AV_HTTPServer(AV_Device, Application):
 		self.docroot = av_loop.args['%s_root' % (self.name)]
 		Application.__init__(self, [
 			(r"/", RedirectHandler, {"url": "/index.html"}),
-			(r"/(static/.*)",   StaticFileHandler,
+			(r"/static/(.*)",   StaticFileHandler,
 				{"path": self.docroot}),
 			(r"/(favicon.ico)", StaticFileHandler,
 				{"path": self.docroot}),
