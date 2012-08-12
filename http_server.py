@@ -55,6 +55,7 @@ class EventHandler(tornado.web.RequestHandler):
 	def get(self):
 		pass
 
+
 class AV_CommandHandler(tornado.web.RequestHandler):
 
 	def get(self, path):
