@@ -18,26 +18,26 @@ class EventHandler(tornado.web.RequestHandler):
 	def on_connection_close(self):
 		self.application.av_loop.remove_cmd_handler(
 			"avr update", self.emit_avr_update)
+		if self.heartbeat:
+			self.heartbeat.stop()
+			self.heartbeat = None
 
 	def prepare(self):
 		self.set_header('Content-Type', 'text/event-stream')
 		self.set_header('Cache-Control', 'no-cache')
-
+		# Instruct clients to reconnect if they lose the connection
 		self.write("retry: 3000\n")
-		self.emit_heartbeat()
-		self.emit_avr_update()
-
-	def reset_heartbeat(self):
-		if self.heartbeat:
-			self.application.av_loop.remove_timeout(self.heartbeat)
-		self.heartbeat = self.application.av_loop.add_timeout(
-			time.time() + 1, self.emit_heartbeat)
+		# Also send a periodic heartbeat to the client, so they can
+		# detect disconnection even if their browser (e.g. Opera)
+		# does not.
+		self.heartbeat = tornado.ioloop.PeriodicCallback(
+			self.emit_heartbeat, 3000)
+		self.heartbeat.start()
 
 	def emit_heartbeat(self):
 		self.write("event: heartbeat\n")
 		self.write("data: %u\n\n" % (time.time()))
 		self.flush()
-		self.reset_heartbeat()
 
 	def emit_avr_update(self, *args):
 		self.write("event: avr_update\n")
