@@ -26,7 +26,6 @@ import argparse
 
 from hdmi_switch import HDMI_Switch
 from avr_device import AVR_Device
-from av_fifo import AV_FIFO
 from http_server import AV_HTTPServer
 from av_loop import AV_Loop
 
@@ -34,12 +33,10 @@ from av_loop import AV_Loop
 Devices = (
 	("hdmi", HDMI_Switch),
 	("avr",  AVR_Device),
-	("fifo", AV_FIFO),
 	("http", AV_HTTPServer),
 )
 
 AVR_Device.DefaultTTY = "/dev/ttyUSB1"
-AV_FIFO.DefaultFIFOPath = "/tmp/av_control"
 
 
 def main(args):
