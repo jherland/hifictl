@@ -1,3 +1,6 @@
+[B]Version 0.6 (Beta)[/B]
+- Send commands over HTTP to sigma:8000 instead of using /tmp/av_control FIFO.
+
 [B]Version 0.5 (Beta)[/B]
 - Remove command mapping entirely. Instead, specify A/V command directly as the
   first (and only) argument to this script.

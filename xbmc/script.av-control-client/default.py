@@ -5,16 +5,16 @@ Author: Johan Herland
 """
 
 import sys
+import urllib
 
-av_fifo = "/tmp/av_control"
+av_server = "http://sigma:8000/cmd/"
 
 assert len(sys.argv) == 2
-av_cmd = sys.argv[1].strip()
+av_cmd = sys.argv[1].strip().split()
+url = av_server + urllib.quote("/".join(av_cmd))
 
-if os.path.exists(av_fifo):
-#	print "Sending '%s' to %s" % (av_cmd, av_fifo)
-	f = open(av_fifo, "w")
-	print >>f, av_cmd
-	f.close()
-else:
-	print "Cannot forward '%s': %s does not exist" % (av_cmd, av_fifo)
+# print "Requesting", url
+response = urllib.urlopen(url)
+# print "Received HTTP status code %u" % (response.getcode())
+# assert response.getcode() == 200
+# print response.read()

@@ -11,7 +11,7 @@
   <extension point="xbmc.addon.metadata">
     <language/>
     <summary>Forward XBMC events to an A/V Control server</summary>
-    <description>This addon will intercept XBMC events (such as key presses or other events) and convert them into A/V control commands being sent to the A/V Controller listening at /tmp/av_control.</description>
-    <disclaimer>Depends on keymap configuration to trigger this script with event arguments which will be converted into A/V commands by this script. Also depends on an A/V Controller listening on /tmp/av_control.</disclaimer>
+    <description>This addon will intercept XBMC events (such as key presses or other events) and convert them into A/V control commands being sent to the A/V Controller listening at sigma:8000.</description>
+    <disclaimer>Depends on keymap configuration to trigger this script with event arguments which will be converted into A/V commands by this script. Also depends on an A/V Controller listening on sigma:8000.</disclaimer>
   </extension>
 </addon>
