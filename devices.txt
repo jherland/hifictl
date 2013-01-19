@@ -11,6 +11,7 @@ HDMI signal sources:
  - Get HD PVR
  - PlayStation 3
  - Wii (with component -> HDMI converter)
+ - Automation server (Raspberry Pi)
  - DVD player?
  - Audio PC?
  - Digital SLR?
@@ -62,16 +63,14 @@ D/A conversion:
  = 8 output XLR or RCA plugs (to be connected to the surround receiver's pre-in).
  = Less D/A channels will be needed as more digital amps are acquired, however, the sub-woofer output might stay on a D/A converter.
  * 8 analog outputs from the Audio PCs audio interface.
- x BEHRINGER ULTRAGAIN PRO-8 DIGITAL ADA8000: http://www.behringer.com/EN/Products/ADA8000.aspx (~NOK1000 used, 1 ADAT -> 8 XLR line out, 44.1 or 48 kHz only)
-    finn.no: http://www.finn.no/finn/torget/tilsalgs/annonse?finnkode=32601600
-    finn.no: http://www.finn.no/finn/torget/tilsalgs/annonse?finnkode=32556073
+ # BEHRINGER ULTRAGAIN PRO-8 DIGITAL ADA8000: http://www.behringer.com/EN/Products/ADA8000.aspx (~NOK1000 used, 1 ADAT -> 8 XLR line out, 44.1 or 48 kHz only)
  x* 4 x BEHRINGER ULTRAMATCH PRO SRC2496: http://www.behringer.com/EN/Products/SRC2496.aspx (4 x ~$250? / NOK?, 1 AES/EBU or SPDIF XLR/RCA/TOSLINK -> 2 XLR line out, 96/24)
  x 2 x AJA ADA4: http://www.aja.com/products/converters/converters-hd-ada4.php (2 x ~$390?, 2 AES/EBU -> 4 XLR line out, 96/24, too expensive)
  x 4 x RME ADI-2: http://www.rme-audio.de/en_products_adi_2.php (4 x $800 / NOK 5000, 1 AES/EBU or SPDIF or ADAT -> 2 XLR/TRS line out, 192/24, too expensive)
  x* 1 x RME ADI-8 DS: http://www.rme-audio.de/en_products_adi_8_ds.php (NOK 11 000, 2 ADAT -> 8 TRS line out, 96/24, too expensive)
  x 1 x RME ADI-8 QS: http://www.rme-audio.de/en_products_adi_8_qs.php (NOK 23 000, 4 AES/EBU or 2 ADAT -> 8 TRS line out, 192/24, too expensive)
  x* 1 x RME M-16 DA: http://www.rme-audio.de/en_products_m32da.php (NOK 30 000, 4 ADAT -> 16 TRS line out, 96/24, too expensive)
- x Twisted Pear Buffalo III DIY DAC: http://www.twistedpearaudio.com/digital/buffalo.aspx ($379, 4 AES/EBU? -> 8 ? line out, 192/24, OK price, very HQ, but requires a lot of work an additional components)
+ x Twisted Pear Buffalo III DIY DAC: http://www.twistedpearaudio.com/digital/buffalo.aspx ($379, 4 AES/EBU? -> 8 ? line out, 192/24, OK price, very HQ, but requires a lot of work and additional components)
 
 Digital amps:
  x http://www.minidsp.com/products/minidspkits/miniamp ($60, TI PurePath, 4x10W or 2x20W, 192/24, 1 I2S, needs box and power supply, too small/weak)
