@@ -84,12 +84,12 @@ class AV_SerialDevice(AV_Device):
 		if events:
 			self.debug("Unhandled events: %u" % (events))
 
-	def ready_to_write(self, set_to = None):
+	def ready_to_write(self, assign = None):
 		"""Return whether or not the remote end is ready to receive.
 
 		This method should probably be extended in subclasses."""
-		if set_to is not None:
-			self.write_ready = set_to
+		if assign is not None:
+			self.write_ready = assign
 
 		ret = self.write_ready and self.write_queue
 

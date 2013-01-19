@@ -64,25 +64,25 @@ class AVR_Device(AV_SerialDevice):
 			self.av_loop.add_timeout(deadline, self._delayed_ready),
 			deadline)
 
-	def ready_to_write(self, set_to = None):
-		if set_to is None:
+	def ready_to_write(self, assign = None):
+		if assign is None:
 			if self.state.off:
 				return False
 			return AV_SerialDevice.ready_to_write(self)
 
-		# set_to == False indicates that we've just written to the AVR.
+		# assign == False indicates that we've just written to the AVR.
 		# In that case, we should nominally delay the next write for
 		# about a second.
 		#
-		# set_to == True indicates that we've just received an updated
+		# assign == True indicates that we've just received an updated
 		# status from the AVR. In that case, we can reduce the
 		# remaining time-to-next-write down to about a quarter second
 		# (value determined by unscientific experiments).
-		deadline = time.time() + (set_to and 0.25 or 1.0)
-		if set_to == False: # Disable writes for 1.0s
+		deadline = time.time() + (assign and 0.25 or 1.0)
+		if assign == False: # Disable writes for 1.0s
 			self.write_ready = False # Disable writes immediately
 			self._setup_write_timer(deadline)
-		elif set_to == True: # Shorten write_timeout to 0.2s
+		elif assign == True: # Shorten write_timeout
 			if self.write_timer and deadline > self.write_timer[1]:
 				pass # Keep current timer
 			elif self.write_timer or not self.write_ready:
