@@ -34,6 +34,8 @@ class AVR_Device(AV_SerialDevice):
 		"surround dolby":  "DOLBY",
 		"surround dts":    "DTS",
 		"surround stereo": "STEREO",
+
+		"update": None # We emit this command, but do not handle it
 	}
 
 	def __init__(self, av_loop, name):
@@ -112,7 +114,10 @@ class AVR_Device(AV_SerialDevice):
 		assert cmd[0] == self.name
 		assert cmd[1] in self.Commands
 		assert not rest
-		avr_cmd = AVR_Command(self.Commands[cmd[1]])
+		avr_cmd_string = self.Commands[cmd[1]]
+		if avr_cmd_string is None: # Skip if command maps to None
+			return
+		avr_cmd = AVR_Command(avr_cmd_string)
 		dgram_spec = AVR_Datagram.PC_AVR_Command
 		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
 		self.schedule_write(dgram)
