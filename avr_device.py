@@ -101,7 +101,7 @@ class AVR_Device(AV_SerialDevice):
 		data = AVR_Datagram.parse_dgram(dgram, dgram_spec)
 		status = AVR_Status.from_dgram(data)
 		if self.state.update(status):
-			self.debug("%s -> %s" % (status, self.state))
+			self.debug("%s\n\t\t-> %s" % (status, self.state))
 			if self.status_handler:
 				self.status_handler(status)
 			self.ready_to_write(True)
@@ -110,6 +110,7 @@ class AVR_Device(AV_SerialDevice):
 		if self.state.off:
 			self.debug("Discarding '%s' while AVR is off" % (cmd))
 			return
+		self.debug("Handling '%s'" % (cmd))
 		cmd = cmd.split(" ", 1)
 		assert cmd[0] == self.name
 		assert cmd[1] in self.Commands

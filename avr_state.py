@@ -40,6 +40,8 @@ class AVR_State(object):
 				props.append("mute")
 			if self.volume is not None:
 				props.append("%idB" % (self.volume))
+			else:
+				props.append("???dB")
 			props.append("%s/%s/%s/ -> %s" % (
 				self.source,
 				AVR_Status.channels_string(self.channels),
