@@ -112,6 +112,7 @@ class AV_HTTPServer(AV_Device, tornado.web.Application):
 
 def main(args):
 	import argparse
+	from tornado.ioloop import IOLoop
 
 	from av_loop import AV_Loop
 
@@ -119,7 +120,8 @@ def main(args):
 		description = "Communicate with " + AV_HTTPServer.Description)
 	AV_HTTPServer.register_args("http", parser)
 
-	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	IOLoop.configure(AV_Loop, parsed_args = vars(parser.parse_args(args)))
+	mainloop = IOLoop.instance()
 	httpd = AV_HTTPServer(mainloop, "http")
 
 	def cmd_catch_all(empty, cmd):

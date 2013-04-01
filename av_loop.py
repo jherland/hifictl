@@ -3,10 +3,10 @@
 import time
 from tornado.ioloop import IOLoop
 
-class AV_Loop(IOLoop):
+class AV_Loop(IOLoop.configurable_default()):
 
-	def __init__(self, parsed_args):
-		IOLoop.__init__(self)
+	def initialize(self, parsed_args):
+		IOLoop.configurable_default().initialize(self)
 		self.install()
 
 		self.args = parsed_args

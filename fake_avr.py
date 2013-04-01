@@ -99,6 +99,7 @@ class Fake_AVR(Fake_SerialDevice):
 
 def main(args):
 	import argparse
+	from tornado.ioloop import IOLoop
 
 	from av_loop import AV_Loop
 
@@ -106,7 +107,8 @@ def main(args):
 		description = Fake_AVR.Description)
 	Fake_AVR.register_args("avr", parser)
 
-	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	IOLoop.configure(AV_Loop, parsed_args = vars(parser.parse_args(args)))
+	mainloop = IOLoop.instance()
 	avr = Fake_AVR(mainloop, "avr")
 
 	print("You can now start ./av_control.py --avr-tty %s" % (

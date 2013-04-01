@@ -39,6 +39,7 @@ class Fake_HDMI_Switch(Fake_SerialDevice):
 
 def main(args):
 	import argparse
+	from tornado.ioloop import IOLoop
 
 	from av_loop import AV_Loop
 
@@ -46,7 +47,8 @@ def main(args):
 		description = Fake_HDMI_Switch.Description)
 	Fake_HDMI_Switch.register_args("hdmi", parser)
 
-	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	IOLoop.configure(AV_Loop, parsed_args = vars(parser.parse_args(args)))
+	mainloop = IOLoop.instance()
 	hdmi = Fake_HDMI_Switch(mainloop, "hdmi")
 
 	print("You can now start ./av_control.py --hdmi-tty %s" % (

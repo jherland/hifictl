@@ -88,6 +88,7 @@ class Fake_SerialDevice(AV_Device):
 
 def main(args):
 	import argparse
+	from tornado.ioloop import IOLoop
 
 	from av_loop import AV_Loop
 
@@ -95,7 +96,9 @@ def main(args):
 		description = Fake_SerialDevice.Description)
 	Fake_SerialDevice.register_args("fake", parser)
 
-	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	
+	IOLoop.configure(AV_Loop, parsed_args = vars(parser.parse_args(args)))
+	mainloop = IOLoop.instance()
 	fake = Fake_SerialDevice(mainloop, "fake")
 
 	print("%s is listening on %s" % (

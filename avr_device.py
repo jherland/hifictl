@@ -132,6 +132,7 @@ class AVR_Device(AV_SerialDevice):
 def main(args):
 	import os
 	import argparse
+	from tornado.ioloop import IOLoop
 
 	from av_loop import AV_Loop
 
@@ -139,7 +140,8 @@ def main(args):
 		description = "Communicate with " + AVR_Device.Description)
 	AVR_Device.register_args("avr", parser)
 
-	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	IOLoop.configure(AV_Loop, parsed_args = vars(parser.parse_args(args)))
+	mainloop = IOLoop.instance()
 	avr = AVR_Device(mainloop, "avr")
 
 	# Forward commands from stdin to avr

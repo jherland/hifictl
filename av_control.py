@@ -23,6 +23,7 @@ import os
 import time
 import select
 import argparse
+from tornado.ioloop import IOLoop
 
 from hdmi_switch import HDMI_Switch
 from avr_device import AVR_Device
@@ -45,7 +46,8 @@ def main(args):
 	for name, cls in Devices:
 		cls.register_args(name, parser)
 
-	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	IOLoop.configure(AV_Loop, parsed_args = vars(parser.parse_args(args)))
+	mainloop = IOLoop.instance()
 
 	for name, cls in Devices:
 		try:

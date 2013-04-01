@@ -75,6 +75,7 @@ class HDMI_Switch(AV_SerialDevice):
 def main(args):
 	import os
 	import argparse
+	from tornado.ioloop import IOLoop
 
 	from av_loop import AV_Loop
 
@@ -82,7 +83,8 @@ def main(args):
 		description = "Communicate with " + HDMI_Switch.Description)
 	HDMI_Switch.register_args("hdmi", parser)
 
-	mainloop = AV_Loop(vars(parser.parse_args(args)))
+	IOLoop.configure(AV_Loop, parsed_args = vars(parser.parse_args(args)))
+	mainloop = IOLoop.instance()
 	hdmi = HDMI_Switch(mainloop, "hdmi")
 
 	def print_serial_data(data):
