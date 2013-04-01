@@ -124,11 +124,11 @@ def main(args):
 
 	def cmd_catch_all(empty, cmd):
 		assert empty == ""
-		print " -> cmd_catch_all(%s)" % (cmd)
+		print(" -> cmd_catch_all(%s)" % (cmd))
 	mainloop.add_cmd_handler("", cmd_catch_all)
 
-	print "Browse to http://%s:%u/ (Ctrl-C here to stop me)" % (
-		httpd.server_host or "localhost", httpd.server_port)
+	print("Browse to http://%s:%u/ (Ctrl-C here to stop me)" % (
+		httpd.server_host or "localhost", httpd.server_port))
 	return mainloop.run()
 
 

@@ -49,23 +49,23 @@ def main(args):
 
 	for name, cls in Devices:
 		try:
-			print "*** Initializing %s..." % (cls.Description),
+			print("*** Initializing %s..." % (cls.Description), end=' ')
 			mainloop.add_device(name, cls(mainloop, name))
-			print "done"
+			print("done")
 		except Exception as e:
-			print e
+			print(e)
 
 	if not mainloop.cmd_handlers:
-		print "No A/V commands registered. Aborting..."
+		print("No A/V commands registered. Aborting...")
 		return 1
 
 	def cmd_catch_all(empty, cmd):
 		"""Handle commands that are not handled elsewhere."""
 		assert empty == ""
-		print "*** Unknown A/V command: '%s'" % (cmd)
+		print("*** Unknown A/V command: '%s'" % (cmd))
 	mainloop.add_cmd_handler("", cmd_catch_all)
 
-	print "Starting A/V controller main loop."
+	print("Starting A/V controller main loop.")
 	return mainloop.run()
 
 

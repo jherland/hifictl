@@ -86,7 +86,7 @@ class AV_Loop(IOLoop):
 		try:
 			self.start()
 		except KeyboardInterrupt:
-			print "Aborted by Ctrl-C"
+			print("Aborted by Ctrl-C")
 
 		self.close()
 		return 0

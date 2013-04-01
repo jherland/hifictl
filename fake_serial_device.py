@@ -79,7 +79,7 @@ class Fake_SerialDevice(AV_Device):
 
 		This method should probably be overridden in subclasses.
 		"""
-		print os.read(self.master, 64 * 1024)
+		print(os.read(self.master, 64 * 1024))
 
 	def handle_write(self):
 		"""Must be overridden in subclasses that poll for writes."""
@@ -98,8 +98,8 @@ def main(args):
 	mainloop = AV_Loop(vars(parser.parse_args(args)))
 	fake = Fake_SerialDevice(mainloop, "fake")
 
-	print "%s is listening on %s" % (
-		fake.Description, fake.client_name())
+	print("%s is listening on %s" % (
+		fake.Description, fake.client_name()))
 
 	return mainloop.run()
 

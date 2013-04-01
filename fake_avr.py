@@ -78,7 +78,7 @@ class Fake_AVR(Fake_SerialDevice):
 
 	def handle_command(self, cmd):
 		now = time.time()
-		print "%7.2f: %10s" % (now - self.t0, cmd.keyword),
+		print("%7.2f: %10s" % (now - self.t0, cmd.keyword), end=' ')
 		if self.standby:
 			if cmd.keyword == "POWER ON":
 				self.standby = False
@@ -94,7 +94,7 @@ class Fake_AVR(Fake_SerialDevice):
 				self.volume += cmd.keyword == "VOL DOWN" and -1 or +1
 				self.status_queue.flush(self.gen_status("default"))
 				self.status_queue.add_relative(3, self.gen_status("volume"))
-		print "->", self.status()
+		print("->", self.status())
 
 
 def main(args):
@@ -109,8 +109,8 @@ def main(args):
 	mainloop = AV_Loop(vars(parser.parse_args(args)))
 	avr = Fake_AVR(mainloop, "avr")
 
-	print "You can now start ./av_control.py --avr-tty %s" % (
-		avr.client_name())
+	print("You can now start ./av_control.py --avr-tty %s" % (
+		avr.client_name()))
 
 	return mainloop.run()
 

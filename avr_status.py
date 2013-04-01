@@ -6,7 +6,7 @@ class AVR_Status(object):
 
 	@staticmethod
 	def decode_avr_line(line):
-		return line.replace("`", u"\u2161").encode("utf-8")
+		return line.replace("`", "\u2161").encode("utf-8")
 
 	@staticmethod
 	def parse_dgram(data):
@@ -244,7 +244,7 @@ class AVR_Status(object):
 			"5CH.STEREO": "5CHS",
 			"SURR.OFF": "SROF",
 		}
-		return "+".join(sorted(map(lambda s: d[s], surround_set)))
+		return "+".join(sorted([d[s] for s in surround_set]))
 
 	# The following lists the reverse-engineered interpretation of
 	# icons[4:8] and how they correspond to the channel/speaker icons

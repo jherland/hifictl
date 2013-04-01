@@ -87,9 +87,9 @@ def main(args):
 
 	def print_serial_data(data):
 		if data:
-			print data,
+			print(data, end=' ')
 			if not data.endswith(">"):
-				print
+				print()
 	hdmi.input_handler = print_serial_data
 
 	# Forward commands from stdin to avr
@@ -100,19 +100,19 @@ def main(args):
 		for cmd in cmds.split("\n"):
 			cmd = cmd.strip()
 			if cmd:
-				print " -> Received cmd '%s'" % (cmd)
+				print(" -> Received cmd '%s'" % (cmd))
 				mainloop.submit_cmd(cmd)
 	mainloop.add_handler(sys.stdin.fileno(), handle_stdin, mainloop.READ)
 
 	def cmd_catch_all(empty, cmd):
 		assert empty == ""
-		print "*** Unknown command: '%s'" % (cmd)
+		print("*** Unknown command: '%s'" % (cmd))
 	mainloop.add_cmd_handler("", cmd_catch_all)
 
 	for arg in args:
 		mainloop.submit_cmd(arg)
 
-	print "Write HDMI switch commands to stdin (Ctrl-C to stop me)"
+	print("Write HDMI switch commands to stdin (Ctrl-C to stop me)")
 	return mainloop.run()
 
 

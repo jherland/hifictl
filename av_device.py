@@ -18,7 +18,7 @@ class AV_Device(object):
 		if self.Debug:
 			import time
 			ts = time.time() - self.av_loop.t0
-			print "%7.2f: %s" % (ts, self), s
+			print("%7.2f: %s" % (ts, self), s)
 
 	def __init__(self, av_loop, name):
 		self.av_loop = av_loop

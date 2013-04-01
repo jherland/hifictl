@@ -97,7 +97,7 @@ class AVR_Command(object):
 		# Reverse-lookup the 4-byte data value in the command dict
 		keyword = None
 		needle = tuple(ord(c) for c in data)
-		for k, v in cls.Commands.iteritems():
+		for k, v in cls.Commands.items():
 			if needle == v:
 				keyword = k
 				break

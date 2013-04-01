@@ -109,7 +109,7 @@ class AV_SerialDevice(AV_Device):
 
 		This method should probably be overridden in subclasses.
 		"""
-		print self.human_readable(self.ser.read(64 * 1024))
+		print(self.human_readable(self.ser.read(64 * 1024)))
 
 	def handle_write(self):
 		"""Attempt to write data to the serial port."""

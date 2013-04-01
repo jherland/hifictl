@@ -49,8 +49,8 @@ def main(args):
 	mainloop = AV_Loop(vars(parser.parse_args(args)))
 	hdmi = Fake_HDMI_Switch(mainloop, "hdmi")
 
-	print "You can now start ./av_control.py --hdmi-tty %s" % (
-		hdmi.client_name())
+	print("You can now start ./av_control.py --hdmi-tty %s" % (
+		hdmi.client_name()))
 
 	return mainloop.run()
 

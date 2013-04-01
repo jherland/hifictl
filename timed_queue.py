@@ -25,7 +25,7 @@ class TimedQueue(object):
 	"""
 
 	def __init__(self, default = None):
-		self.q = [(sys.maxint, default)]
+		self.q = [(sys.maxsize, default)]
 
 	def current(self):
 		"""Return the currently active/available object.
@@ -58,7 +58,7 @@ class TimedQueue(object):
 
 	def flush(self, default = None):
 		"""Empty the queue, and restart with a new default."""
-		self.q = [(sys.maxint, default)]
+		self.q = [(sys.maxsize, default)]
 
 
 def main(args):
