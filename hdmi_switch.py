@@ -17,22 +17,22 @@ class HDMI_Switch(AV_SerialDevice):
 	DefaultBaudRate = 19200
 
 	# Marmitek has strange newline conventions
-	LF = "\n\r"
+	LF = b"\n\r"
 
 	# Map A/V command to corresponding HDMI switch command
 	Commands = {
-		"1":       LF + "1" + LF,
-		"2":       LF + "2" + LF,
-		"3":       LF + "3" + LF,
-		"4":       LF + "4" + LF,
-		"on":      LF + "5" + LF,
-		"off":     LF + "5" + LF,
-		"version": LF + "v" + LF,
-		"help":    LF + "?" + LF,
+		"1":       LF + b"1" + LF,
+		"2":       LF + b"2" + LF,
+		"3":       LF + b"3" + LF,
+		"4":       LF + b"4" + LF,
+		"on":      LF + b"5" + LF,
+		"off":     LF + b"5" + LF,
+		"version": LF + b"v" + LF,
+		"help":    LF + b"?" + LF,
 	}
 
-	Init_Input = "Marmitek BV, The Netherlands. All rights reserved. " \
-	             "www.marmitek.com" + LF + ">"
+	Init_Input = b"Marmitek BV, The Netherlands. All rights reserved. " \
+	             b"www.marmitek.com" + LF + b">"
 
 	def __init__(self, av_loop, name):
 		AV_SerialDevice.__init__(self, av_loop, name)
@@ -49,21 +49,22 @@ class HDMI_Switch(AV_SerialDevice):
 			self.debug("started.")
 			# Trigger wake from standby
 			self.handle_cmd(self.name + " on", "")
-		elif s == "\0":
+		elif s == b"\0":
 			self.ready_to_write(False)
 			self.debug("stopped.")
 		elif s.strip() in ("1", "2", "3", "4", "5", "v", "?"):
-			self.debug("Executed command '%s'" % (s.strip()))
-		elif s != ">":
+			self.debug("Executed command '%s'" % (
+				str(s.strip(), 'ascii')))
+		elif s != b">":
 			self.debug("Unrecognized input: '%s'" % (
 				self.human_readable(s)))
 
-		if s.endswith(">"):
+		if s.endswith(b">"):
 			self.ready_to_write(True)
 			self.debug("ready.")
 
 		if self.input_handler:
-			self.input_handler(s.replace("\r", "").strip())
+			self.input_handler(str(s, 'ascii').replace("\r", "").strip())
 
 	def handle_cmd(self, cmd, rest):
 		cmd = cmd.split()
@@ -98,7 +99,7 @@ def main(args):
 	def handle_stdin(fd, events):
 		assert fd == sys.stdin.fileno()
 		assert events & mainloop.READ
-		cmds = os.read(sys.stdin.fileno(), 64 * 1024)
+		cmds = str(os.read(sys.stdin.fileno(), 64 * 1024), 'ascii')
 		for cmd in cmds.split("\n"):
 			cmd = cmd.strip()
 			if cmd:

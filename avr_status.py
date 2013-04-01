@@ -6,7 +6,7 @@ class AVR_Status(object):
 
 	@staticmethod
 	def decode_avr_line(line):
-		return line.replace("`", "\u2161").encode("utf-8")
+		return line.replace("`", "\u2161")
 
 	@staticmethod
 	def parse_dgram(data):
@@ -34,13 +34,14 @@ class AVR_Status(object):
 		report, or throw an exception if parsing failed.
 		"""
 		assert len(data) == 48, "Unexpected length"
-		assert ord(data[0])  == 0xf0
-		assert ord(data[15]) == 0x00
-		assert ord(data[16]) == 0xf1
-		assert ord(data[31]) == 0x00
-		assert ord(data[32]) == 0xf2
-		assert ord(data[47]) == 0x00
-		return (data[1:15], data[17:31], data[33:47])
+		assert data[0]   == 0xf0
+		assert data[15]  == 0x00
+		assert data[16]  == 0xf1
+		assert data[31]  == 0x00
+		assert data[32]  == 0xf2
+		assert data[47]  == 0x00
+		return (str(data[1:15], 'ascii'), str(data[17:31], 'ascii'),
+			data[33:47])
 
 	@classmethod
 	def from_dgram(cls, dgram):
@@ -88,13 +89,13 @@ class AVR_Status(object):
 		assert len(self.icons) == 14
 		return chr(0xf0) + self.line1 + chr(0x00) + \
 		       chr(0xf1) + self.line2 + chr(0x00) + \
-		       chr(0xf2) + self.icons + chr(0x00)
+		       chr(0xf2) + str(self.icons, 'ascii') + chr(0x00)
 
 	def standby(self):
 		"""Decode and return whether AVR is in standby mode."""
 		# if self.icons is all 0x00, then assume we're in standby mode
 		for b in self.icons:
-			if ord(b):
+			if b:
 				return False
 		return True
 
@@ -184,7 +185,7 @@ class AVR_Status(object):
 		#   |* _DOLBY DIGITAL_ EX
 		#   ** DOLBY DIGITAL EX
 
-		buf = tuple([ord(b) for b in self.icons[0:4]])
+		buf = self.icons[0:4]
 		ret = set()
 		if   buf[0] & 0x20: ret.add("DOLBY DIGITAL EX")
 		elif buf[0] & 0x40: ret.add("DOLBY DIGITAL")
@@ -302,7 +303,7 @@ class AVR_Status(object):
 		 - A 5.1 surround signal will also contain C, LFE, SL and SR
 		 - A 7.1 surround signal will also contains SBL and SBR
 		"""
-		buf = [ord(b) for b in self.icons[4:8]]
+		buf = self.icons[4:8]
 		ret = set()
 		if buf[0] & 0x20: ret.add("L") # left
 		if buf[0] & 0x02: ret.add("C") # center
@@ -348,7 +349,7 @@ class AVR_Status(object):
 		"SURROUND OFF" mode, the set will not contain the surround
 		speakers, although they are still physically connected.
 		"""
-		buf = [ord(b) for b in self.icons[4:8]]
+		buf = self.icons[4:8]
 		ret = set()
 		if   buf[0] & 0x80: ret.add("L")
 		elif buf[0] & 0x40: ret.add("l")
@@ -418,7 +419,7 @@ class AVR_Status(object):
 		#  VID4: icons[8:12] == 00 01 80 00
 		#  FM:   icons[8:12] == 00 0c 00 00
 		#  AM:   icons[8:12] == 00 0a 00 00
-		buf = [ord(b) for b in self.icons[8:12]]
+		buf = self.icons[8:12]
 		ret = set()
 		if buf[0] & 0x30: ret.add("DVD")
 		if buf[1] & 0xc0: ret.add("CD")

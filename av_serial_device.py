@@ -27,11 +27,10 @@ class AV_SerialDevice(AV_Device):
 		"""
 		ret = ""
 		for c in s:
-			i = ord(c)
-			if i >= 0x20 and i < 0x7f:
-				ret += c
+			if c >= 0x20 and c < 0x7f:
+				ret += chr(c)
 			else:
-				ret += "\\0x%02x" % (ord(c))
+				ret += "\\0x%02x" % (c)
 		return ret
 
 	@classmethod
@@ -118,11 +117,11 @@ class AV_SerialDevice(AV_Device):
 			written = self.ser.write(data)
 			assert written == len(data)
 			self.debug("Wrote %u bytes (%s)" % (written,
-				" ".join(["%02x" % (ord(b)) for b in data])))
+				" ".join(["%02x" % (b) for b in data])))
 			self.ready_to_write(False)
 
 	def schedule_write(self, data):
 		self.debug("Adding %u bytes to write queue (%s)" % (len(data),
-			" ".join(["%02x" % (ord(b)) for b in data])))
+			" ".join(["%02x" % (b) for b in data])))
 		self.write_queue.append(data)
 		self.ready_to_write()

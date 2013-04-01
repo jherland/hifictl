@@ -20,9 +20,9 @@ class Fake_AVR(Fake_SerialDevice):
 
 	Description = "Fake Harman/Kardon AVR 430"
 
-	EmptyIcons = chr(0x00) * 14
-	DefaultIcons = "".join(map(chr, [0xc0, 0x00, 0x00, 0x00,
-		0xfd, 0xfb, 0x7a, 0x00, 0xc0] + [0x00] * 5))
+	EmptyIcons = bytes([0x00] * 14)
+	DefaultIcons = bytes([0xc0, 0x00, 0x00, 0x00,
+		0xfd, 0xfb, 0x7a, 0x00, 0xc0] + [0x00] * 5)
 
 	StatusMap = {
 		"standby": ("              ", "              ", EmptyIcons),
@@ -31,8 +31,8 @@ class Fake_AVR(Fake_SerialDevice):
 		"volume":  ("FAKE AVR      ", "  VOL %(volume)3i dB  ", DefaultIcons),
 	}
 
-	RecvDGramSpec = ("PCSEND", 2, 4) # Receive PC->AVR remote commands
-	SendDGramSpec = ("MPSEND", 3, 48) # Send AVR->PC status updates
+	RecvDGramSpec = (b"PCSEND", 2, 4) # Receive PC->AVR remote commands
+	SendDGramSpec = (b"MPSEND", 3, 48) # Send AVR->PC status updates
 
 	def __init__(self, av_loop, name):
 		Fake_SerialDevice.__init__(self, av_loop, name)

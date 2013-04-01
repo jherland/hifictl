@@ -5,10 +5,10 @@ class AVR_Datagram(object):
 	"""Do low-level datagram en/decoding for the H/K AVR protocol."""
 
 	# Datagram "spec" for AVR->PC status updated
-	AVR_PC_Status = ("MPSEND", 3, 48)
+	AVR_PC_Status = (b"MPSEND", 3, 48)
 
 	# Datagram "spec" for PC->AVR remote control commands
-	PC_AVR_Command = ("PCSEND", 2, 4)
+	PC_AVR_Command = (b"PCSEND", 2, 4)
 
 	@staticmethod
 	def calc_cksum(data):
@@ -19,8 +19,8 @@ class AVR_Datagram(object):
 		"""
 		cksum = [0, 0]
 		for i, b in enumerate(data):
-			cksum[i % 2] ^= ord(b)
-		return chr(cksum[0]) + chr(cksum[1])
+			cksum[i % 2] ^= b
+		return bytes(cksum)
 
 	@staticmethod
 	def full_dgram_len(dgram_spec):
@@ -72,10 +72,12 @@ class AVR_Datagram(object):
 		dgram_start, dgram_type, dgram_len = dgram_spec
 		full_dgram_len = cls.full_dgram_len(dgram_spec)
 
+		assert isinstance(dgram, bytes)
+		assert isinstance(dgram_start, bytes)
 		assert len(dgram) == full_dgram_len, "Unexpected dgram length"
 		assert dgram.startswith(dgram_start), "Unexpected start keyword"
-		assert ord(dgram[6]) == dgram_type, "Unexpected type"
-		assert ord(dgram[7]) == dgram_len, "Unexpected data length"
+		assert dgram[6] == dgram_type, "Unexpected type"
+		assert dgram[7] == dgram_len, "Unexpected data length"
 		data = dgram[8 : 8 + dgram_len]
 		cksum = dgram[8 + dgram_len:]
 		assert cksum == cls.calc_cksum(data), "Failed checksum"
@@ -88,6 +90,7 @@ class AVR_Datagram(object):
 		Return the full datagram, including protocol overhead.
 		"""
 		dgram_start, dgram_type, dgram_len = dgram_spec
+		assert isinstance(data, bytes)
 		assert len(data) == dgram_len, "Incorrect data length"
-		return dgram_start + chr(dgram_type) + chr(dgram_len) \
+		return dgram_start + bytes([dgram_type, dgram_len]) \
 			+ data + cls.calc_cksum(data)
