@@ -47,6 +47,8 @@ class AVR_Device(AV_SerialDevice):
 
 		self.status_handler = None
 
+		self.readbuf = bytes()
+
 		# Don't start writing until a status update is received.
 		self.write_ready = False
 
@@ -92,12 +94,47 @@ class AVR_Device(AV_SerialDevice):
 				self._setup_write_timer(deadline)
 
 	def handle_read(self, dgram_spec = AVR_Datagram.AVR_PC_Status):
-		"""Attempt to read a datagram from the serial port."""
-		dgram_len = AVR_Datagram.full_dgram_len(dgram_spec)
-		dgram = self.ser.read(dgram_len)
-		if len(dgram) != dgram_len:
-			raise ValueError("Incomplete datagram (got %u bytes, " \
-				"expected %u bytes)" % (len(dgram), dgram_len))
+		"""Attempt to read a datagram from the serial port.
+
+		Look for a bytes matching AVR_Datagram.expect_dgram_start(),
+		and read additional bytes until we have a byte sequence of
+		total length == AVR_Datagram.full_dgram_len().
+		"""
+		d_start = AVR_Datagram.expect_dgram_start(dgram_spec)
+		assert isinstance(d_start, bytes)
+		d_len = AVR_Datagram.full_dgram_len(dgram_spec)
+		assert len(d_start) < d_len
+
+		assert len(self.readbuf) < d_len
+#		self.debug("Have %u bytes" % (len(self.readbuf)))
+		self.readbuf += self.ser.read(d_len - len(self.readbuf))
+		if len(self.readbuf) < d_len:
+#			self.debug("Incomplete dgram (got %u/%u bytes): %s" % (
+#			            len(self.readbuf), d_len,
+#			            self.human_readable(self.readbuf)))
+			return
+
+		# Find start of datagram
+		i = self.readbuf.find(d_start)
+		if i < 0: # beyond len(self.readbuf) - len(d_start)
+#			self.debug("No start of dgram in %u bytes: %s" % (
+#				len(self.readbuf),
+#				self.human_readable(self.readbuf)))
+			self.readbuf = self.readbuf[-(len(d_start) - 1):]
+			return
+		elif i > 0: # dgram starts at index i
+#			self.debug("dgram starts at index %u in %s" % (i,
+#				self.human_readable(self.readbuf)))
+			self.readbuf = self.readbuf[i:]
+		assert self.readbuf.startswith(d_start)
+
+		if len(self.readbuf) < d_len:
+			return
+
+#		self.debug("parsing self.readbuf: %s" % (
+#			self.human_readable(self.readbuf)))
+		dgram, self.readbuf = self.readbuf[:d_len], self.readbuf[d_len:]
+		assert isinstance(dgram, bytes)
 		data = AVR_Datagram.parse_dgram(dgram, dgram_spec)
 		status = AVR_Status.from_dgram(data)
 		if self.state.update(status):

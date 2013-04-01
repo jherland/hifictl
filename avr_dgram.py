@@ -37,6 +37,17 @@ class AVR_Datagram(object):
 		dgram_start, dgram_type, dgram_len = dgram_spec
 		return len(dgram_start) + 1 + 1 + dgram_len + 2
 
+	@staticmethod
+	def expect_dgram_start(dgram_spec):
+		"""Return the bytes the we expect to occur at the start of an
+                AVR datagram following the given spec.
+
+		This consists of the start keyword, followed by the data type
+                byte and the data length byte.
+		"""
+		dgram_start, dgram_type, dgram_len = dgram_spec
+		return dgram_start + bytes([dgram_type, dgram_len])
+
 	@classmethod
 	def parse_dgram(cls, dgram, dgram_spec):
 		"""Parse the given datagram, and return the data portion of it.
