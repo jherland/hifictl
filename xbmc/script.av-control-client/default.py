@@ -7,7 +7,7 @@ Author: Johan Herland
 import sys
 import urllib
 
-av_server = "http://sigma:8000/cmd/"
+av_server = "http://phi:8000/cmd/"
 
 assert len(sys.argv) == 2
 av_cmd = sys.argv[1].strip().split()
