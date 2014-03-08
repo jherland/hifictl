@@ -44,8 +44,6 @@ var event_source = null;
 var watchdog = null;
 var connected = null;
 
-var avr_standby = true;
-
 function send_cmd(cmd) {
 	var components = cmd.split(" ");
 	var cmd_url = "/cmd";
@@ -72,10 +70,6 @@ function ui_enable(selector, enable) {
 	}
 }
 
-function avr_standby_toggle() {
-	send_cmd(avr_standby ? "avr on" : "avr off");
-}
-
 function parse_avr_state(e) {
 	var s = JSON.parse(e.data); // extract AVR state info
 
@@ -91,7 +85,6 @@ function parse_avr_state(e) {
 	ui_enable('#avr_sourcecontrols', !s.standby);
 	ui_enable('#avr_surroundcontrols', !s.standby);
 	ui_enable('#avr_volumecontrols', !s.standby);
-	avr_standby = s.standby;
 	// TODO: Standby button color: yellow in standby, blue when on.
 	if (s.standby) {
 		return $('#avr_state').text("Standby");
@@ -180,7 +173,7 @@ window.onload = connect_event_source;
 
 	<div class="ui-grid-b">
 		<div class="ui-block-a">
-			<a id="avr_standby_button" onclick="avr_standby_toggle()"
+			<a id="avr_standby_button" onclick="send_cmd('avr on_off')"
 			data-role="button" data-theme="a">
 				<i class="icon-off"></i>
 			</a>
