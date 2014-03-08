@@ -10,6 +10,10 @@ from avr_status import AVR_Status
 from avr_state import AVR_State
 
 
+def standby_toggle(state):
+	return "POWER ON" if state.standby else "POWER OFF"
+
+
 class AVR_Device(AV_SerialDevice):
 	"""Simple wrapper for communicating with a Harman/Kardon AVR 430.
 
@@ -37,6 +41,8 @@ class AVR_Device(AV_SerialDevice):
 		"surround dolby":  "DOLBY",
 		"surround dts":    "DTS",
 		"surround stereo": "STEREO",
+
+		"on_off": standby_toggle, # Toggle on/off
 
 		"update": None # We emit this command, but do not handle it
 	}
@@ -158,6 +164,8 @@ class AVR_Device(AV_SerialDevice):
 		avr_cmd_string = self.Commands[cmd[1]]
 		if avr_cmd_string is None: # Skip if command maps to None
 			return
+		if callable(avr_cmd_string):
+			avr_cmd_string = avr_cmd_string(self.state)
 		avr_cmd = AVR_Command(avr_cmd_string)
 		dgram_spec = AVR_Datagram.PC_AVR_Command
 		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
