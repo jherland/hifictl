@@ -14,7 +14,7 @@
       <launch_app2_pc_icon>XBMC.RunScript(script.av-control-client, hdmi off)</launch_app2_pc_icon>
 
       <!-- The far right key on the 2nd row turns off the AVR -->
-      <delete>XBMC.RunScript(script.av-control-client, avr off)</delete>
+      <delete>XBMC.RunScript(script.av-control-client, avr on_off)</delete>
 
       <!-- TODO: Map ??? to surround mode switching -->
     </keyboard>
