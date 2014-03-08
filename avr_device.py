@@ -30,6 +30,9 @@ class AVR_Device(AV_SerialDevice):
 		"vol-": "VOL DOWN",
 		"vol?": "VOL DOWN", # Trigger volume display
 
+		"source vid1": "VID1",
+		"source vid2": "VID2",
+
 		"surround 6ch":    "6CH/8CH",
 		"surround dolby":  "DOLBY",
 		"surround dts":    "DTS",

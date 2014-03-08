@@ -183,6 +183,14 @@ window.onload = connect_event_source;
 			data-role="button" data-theme="a">
 				<i class="icon-off"></i>
 			</a>
+			<div id="avr_sourcecontrols" data-role="controlgroup">
+				<a onclick="send_cmd('avr source vid1')" data-role="button">
+					HDMI<!-- VID1/HTPC -->
+				</a>
+				<a onclick="send_cmd('avr source vid2')" data-role="button">
+					TV<!-- VID2/TV -->
+				</a>
+			</div>
 			<div id="avr_surroundcontrols" data-role="controlgroup">
 				<!-- <a onclick="send_cmd('avr surround 6ch')" data-role="button">
 					5.1
