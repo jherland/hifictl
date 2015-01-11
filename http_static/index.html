@@ -42,7 +42,6 @@ pre#avr_state {
 
 var event_source = null;
 var watchdog = null;
-var connected = null;
 
 function send_cmd(cmd) {
 	var components = cmd.split(" ");
@@ -105,29 +104,7 @@ function parse_avr_state(e) {
 	}
 }
 
-function set_connected(is_connected) {
-	if (is_connected == connected) {
-		return; // No change
-	}
-	// Show a dialog while (re)connecting, and hide it when done
-	if (!is_connected) {
-		var txt = 'Reconnecting to event server';
-		if (connected == null) {
-			// First time connecting
-			txt = 'Connecting to event server';
-		}
-		ui_enable('#controls_page', false);
-		$.mobile.showPageLoadingMsg('a', txt, true);
-	}
-	else {
-		ui_enable('#controls_page', true);
-		$.mobile.hidePageLoadingMsg();
-	}
-	connected = is_connected;
-}
-
 function lost_connection() {
-	set_connected(false);
 	event_source.close();
 	connect_event_source();
 }
@@ -144,11 +121,9 @@ function reset_watchdog() {
 		clearTimeout(watchdog);
 	}
 	watchdog = setTimeout(lost_connection, 5000);
-	set_connected(true);
 }
 
 function connect_event_source() {
-	set_connected(false);
 	event_source = new EventSource('/events');
 	event_source.addEventListener('open', reset_watchdog, false);
 	event_source.addEventListener('error', maybe_lost_connection, false);
@@ -162,7 +137,7 @@ window.onload = connect_event_source;
 </head>
 <body>
 
-<div data-role="page" id="controls_page" class="ui-disabled">
+<div data-role="page" id="controls_page">
 
 <div data-role="header">
 	<h1>A/V remote control</h1>
