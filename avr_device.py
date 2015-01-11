@@ -42,6 +42,9 @@ class AVR_Device(AV_SerialDevice):
 		"surround dts":    "DTS",
 		"surround stereo": "STEREO",
 
+		"dig+": "DIGITAL UP",
+		"dig-": "DIGITAL DOWN",
+
 		"on_off": standby_toggle, # Toggle on/off
 
 		"update": None # We emit this command, but do not handle it
