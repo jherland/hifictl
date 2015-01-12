@@ -113,6 +113,14 @@ class AVR_Status(object):
 			return int(line[4:7])
 		return None
 
+	def digital(self):
+		"""Decode and return digital input gate from AVR status."""
+		try:
+			_, dig_str = self.line1.split('/')
+			return dig_str.strip()
+		except ValueError:
+			return None
+
 	def surround(self):
 		"""Decode and return the surround mode from AVR status.
 

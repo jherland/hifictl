@@ -37,9 +37,9 @@ class AVR_Device(AV_SerialDevice):
 		up = amount > 0
 		amount = abs(amount)
 		# If digital is not currently showing, we need to trigger it
-###		if not self.state.showing_digital:
-		yield "DIGITAL"
-###			self.state.showing_digital = True
+		if not self.state.showing_digital:
+			yield "DIGITAL"
+			self.state.showing_digital = True
 		for _ in range(amount):
 			yield "DIGITAL UP" if up else "DIGITAL DOWN"
 

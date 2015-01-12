@@ -15,6 +15,7 @@ class AVR_State(object):
 		self.volume_triggered = False # True iff volume trigger is sent
 		self.watchdog = None  # Times out if we don't get status updates
 		self.showing_volume = False
+		self.showing_digital = True
 
 		self.off      = None  # bool
 		self.standby  = None  # bool
@@ -107,6 +108,12 @@ class AVR_State(object):
 			self.volume = status.volume()
 			self.volume_triggered = False
 			self.showing_volume = True
+		if status.digital() is None:
+			self.showing_digital = False
+		else:
+			if status.digital():
+				self.digital = status.digital()
+			self.showing_digital = True
 		self.surround = status.surround()
 		if status.channels():
 			self.channels = status.channels()
