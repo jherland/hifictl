@@ -22,7 +22,7 @@ class AVR_Device(AV_SerialDevice):
 	DefaultBaudRate = 38400
 
 	def _toggle_standby(self):
-		return "POWER ON" if self.state.standby else "POWER OFF"
+		return ["POWER ON"] if self.state.standby else ["POWER OFF"]
 
 	def _adjust_volume(self, amount=0):
 		up = amount > 0
