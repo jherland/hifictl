@@ -10,10 +10,6 @@ from avr_status import AVR_Status
 from avr_state import AVR_State
 
 
-def standby_toggle(state):
-	return "POWER ON" if state.standby else "POWER OFF"
-
-
 class AVR_Device(AV_SerialDevice):
 	"""Simple wrapper for communicating with a Harman/Kardon AVR 430.
 
@@ -25,29 +21,42 @@ class AVR_Device(AV_SerialDevice):
 
 	DefaultBaudRate = 38400
 
+	def _toggle_standby(self):
+		return "POWER ON" if self.state.standby else "POWER OFF"
+
+	def _adjust_volume(self, amount=0):
+		up = amount > 0
+		amount = abs(amount)
+		# If volume is not currently showing, we need an extra trigger
+		if not self.state.showing_volume:
+			amount += 1
+			self.state.showing_volume = True
+		cmd = "VOL UP" if up else "VOL DOWN"
+		return [cmd] * amount
+
 	# Map A/V commands to corresponding AVR command
 	Commands = {
-		"on":   "POWER ON",
-		"off":  "POWER OFF",
-		"mute": "MUTE",
-		"vol+": "VOL UP",
-		"vol-": "VOL DOWN",
-		"vol?": "VOL DOWN", # Trigger volume display
+		"on": lambda self: ["POWER ON"],
+		"off": lambda self: ["POWER OFF"],
+		"on_off": _toggle_standby, # Toggle on/off
 
-		"source vid1": "VID1",
-		"source vid2": "VID2",
+		"mute": lambda self: ["MUTE"],
+		"vol+": lambda self: self._adjust_volume(+1),
+		"vol-": lambda self: self._adjust_volume(-1),
+		"vol?": lambda self: self._adjust_volume(0), # Trigger volume display
 
-		"surround 6ch":    "6CH/8CH",
-		"surround dolby":  "DOLBY",
-		"surround dts":    "DTS",
-		"surround stereo": "STEREO",
+		"source vid1": lambda self: ["VID1"],
+		"source vid2": lambda self: ["VID2"],
 
-		"dig+": "DIGITAL UP",
-		"dig-": "DIGITAL DOWN",
+		"surround 6ch": lambda self: ["6CH/8CH"],
+		"surround dolby": lambda self: ["DOLBY"],
+		"surround dts": lambda self: ["DTS"],
+		"surround stereo": lambda self: ["STEREO"],
 
-		"on_off": standby_toggle, # Toggle on/off
+		"dig+": lambda self: ["DIGITAL UP"],
+		"dig-": lambda self: ["DIGITAL DOWN"],
 
-		"update": None # We emit this command, but do not handle it
+		"update": lambda self: [] # We only _emit_ this command
 	}
 
 	def __init__(self, av_loop, name):
@@ -160,24 +169,17 @@ class AVR_Device(AV_SerialDevice):
 			self.debug("Discarding '%s' while AVR is off" % (cmd))
 			return
 		self.debug("Handling '%s'" % (cmd))
-		cmd = cmd.split(" ", 1)
-		assert cmd[0] == self.name
-		assert cmd[1] in self.Commands
+		avr, cmd = cmd.split(" ", 1)
+		assert avr == self.name
+		assert cmd in self.Commands
 		assert not rest
-		avr_cmd_string = self.Commands[cmd[1]]
-		if avr_cmd_string is None: # Skip if command maps to None
-			return
-		if callable(avr_cmd_string):
-			avr_cmd_string = avr_cmd_string(self.state)
-		avr_cmd = AVR_Command(avr_cmd_string)
-		dgram_spec = AVR_Datagram.PC_AVR_Command
-		dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
-		self.schedule_write(dgram)
-
-		# If volume is not currently showing, we need an extra trigger
-		if cmd[1] in ("vol+", "vol-") and not self.state.showing_volume:
+		command = self.Commands[cmd]
+		assert callable(command)
+		for command_str in command(self)
+			avr_cmd = AVR_Command(avr_cmd_string)
+			dgram_spec = AVR_Datagram.PC_AVR_Command
+			dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
 			self.schedule_write(dgram)
-			self.state.showing_volume = True
 
 
 def main(args):
