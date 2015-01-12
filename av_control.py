@@ -19,9 +19,6 @@ then listen for I/O events on the given file descriptors.
 """
 
 import sys
-import os
-import time
-import select
 import argparse
 from tornado.ioloop import IOLoop
 
@@ -32,44 +29,44 @@ from av_loop import AV_Loop
 
 
 Devices = (
-	("hdmi", HDMI_Switch),
-	("avr",  AVR_Device),
-	("http", AV_HTTPServer),
+    ("hdmi", HDMI_Switch),
+    ("avr",  AVR_Device),
+    ("http", AV_HTTPServer),
 )
 
 AVR_Device.DefaultTTY = "/dev/ttyUSB1"
 
 
 def main(args):
-	parser = argparse.ArgumentParser(
-		description = "Controller daemon for A/V devices")
-	for name, cls in Devices:
-		cls.register_args(name, parser)
+    parser = argparse.ArgumentParser(
+        description="Controller daemon for A/V devices")
+    for name, cls in Devices:
+        cls.register_args(name, parser)
 
-	IOLoop.configure(AV_Loop, parsed_args = vars(parser.parse_args(args)))
-	mainloop = IOLoop.instance()
+    IOLoop.configure(AV_Loop, parsed_args=vars(parser.parse_args(args)))
+    mainloop = IOLoop.instance()
 
-	for name, cls in Devices:
-		try:
-			print("*** Initializing %s..." % (cls.Description), end=' ')
-			mainloop.add_device(name, cls(mainloop, name))
-			print("done")
-		except Exception as e:
-			print(e)
+    for name, cls in Devices:
+        try:
+            print("*** Initializing %s..." % (cls.Description), end=' ')
+            mainloop.add_device(name, cls(mainloop, name))
+            print("done")
+        except Exception as e:
+            print(e)
 
-	if not mainloop.cmd_handlers:
-		print("No A/V commands registered. Aborting...")
-		return 1
+    if not mainloop.cmd_handlers:
+        print("No A/V commands registered. Aborting...")
+        return 1
 
-	def cmd_catch_all(empty, cmd):
-		"""Handle commands that are not handled elsewhere."""
-		assert empty == ""
-		print("*** Unknown A/V command: '%s'" % (cmd))
-	mainloop.add_cmd_handler("", cmd_catch_all)
+    def cmd_catch_all(empty, cmd):
+        """Handle commands that are not handled elsewhere."""
+        assert empty == ""
+        print("*** Unknown A/V command: '%s'" % (cmd))
+    mainloop.add_cmd_handler("", cmd_catch_all)
 
-	print("Starting A/V controller main loop.")
-	return mainloop.run()
+    print("Starting A/V controller main loop.")
+    return mainloop.run()
 
 
 if __name__ == '__main__':
-	sys.exit(main(sys.argv[1:]))
+    sys.exit(main(sys.argv[1:]))

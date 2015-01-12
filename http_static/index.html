@@ -1,240 +1,240 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>A/V remote control</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="/FortAwesome-Font-Awesome-ee55c85/css/font-awesome.css" />
-	<link rel="stylesheet" href="/jquery.mobile-1.1.0.min.css" />
-	<style type="text/css">
+    <title>A/V remote control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/FortAwesome-Font-Awesome-ee55c85/css/font-awesome.css" />
+    <link rel="stylesheet" href="/jquery.mobile-1.1.0.min.css" />
+    <style type="text/css">
 
 h2 {
-	margin-top: 0;
+    margin-top: 0;
 }
 
 div#controls_page {
-	text-align: center;
+    text-align: center;
 }
 
 pre#avr_state {
-	font-size: small;
+    font-size: small;
 }
 
 .ui-grid-b .ui-block-a {
-	width: 30%;
+    width: 30%;
 }
 
 .ui-grid-b .ui-block-b {
-	width: 40%;
+    width: 40%;
 }
 
 .ui-grid-b .ui-block-c {
-	width: 30%;
+    width: 30%;
 }
 
 .ui-content {
-	padding: 10px 2px 0 2px;
+    padding: 10px 2px 0 2px;
 }
 
-	</style>
-	<script src="/jquery-1.7.2.min.js"></script>
-	<script src="/jquery.mobile-1.1.0.min.js"></script>
-	<script>
+    </style>
+    <script src="/jquery-1.7.2.min.js"></script>
+    <script src="/jquery.mobile-1.1.0.min.js"></script>
+    <script>
 
 var event_source = null;
 var watchdog = null;
 
 function send_cmd(cmd) {
-	var components = cmd.split(" ");
-	var cmd_url = "/cmd";
-	for (var i = 0; i < components.length; i++) {
-		cmd_url += "/" + encodeURIComponent(components[i]);
-	}
-	$.ajax({ type: 'POST', url: cmd_url });
+    var components = cmd.split(" ");
+    var cmd_url = "/cmd";
+    for (var i = 0; i < components.length; i++) {
+        cmd_url += "/" + encodeURIComponent(components[i]);
+    }
+    $.ajax({ type: 'POST', url: cmd_url });
 }
 
 function repeat_cmd(cmd, repeats) {
-	var i = 0
-	while (i < repeats) {
-		send_cmd(cmd);
-		i++;
-	}
+    var i = 0
+    while (i < repeats) {
+        send_cmd(cmd);
+        i++;
+    }
 }
 
 function ui_enable(selector, enable) {
-	if (enable) {
-		$(selector).removeClass('ui-disabled');
-	}
-	else {
-		$(selector).addClass('ui-disabled');
-	}
+    if (enable) {
+        $(selector).removeClass('ui-disabled');
+    }
+    else {
+        $(selector).addClass('ui-disabled');
+    }
 }
 
 function parse_avr_state(e) {
-	var s = JSON.parse(e.data); // extract AVR state info
+    var s = JSON.parse(e.data); // extract AVR state info
 
-	if (!s) {
-		return $('#avr_state').text("Unknown");
-	}
+    if (!s) {
+        return $('#avr_state').text("Unknown");
+    }
 
-	ui_enable('#avr_controls', !s.off);
-	if (s.off) {
-		return $('#avr_state').text("Off");
-	}
+    ui_enable('#avr_controls', !s.off);
+    if (s.off) {
+        return $('#avr_state').text("Off");
+    }
 
-	ui_enable('#avr_sourcecontrols', !s.standby);
-	ui_enable('#avr_surroundcontrols', !s.standby);
-	ui_enable('#avr_digitalcontrols', !s.standby);
-	ui_enable('#avr_volumecontrols', !s.standby);
-	// TODO: Standby button color: yellow in standby, blue when on.
-	if (s.standby) {
-		return $('#avr_state').text("Standby");
-	}
+    ui_enable('#avr_sourcecontrols', !s.standby);
+    ui_enable('#avr_surroundcontrols', !s.standby);
+    ui_enable('#avr_digitalcontrols', !s.standby);
+    ui_enable('#avr_volumecontrols', !s.standby);
+    // TODO: Standby button color: yellow in standby, blue when on.
+    if (s.standby) {
+        return $('#avr_state').text("Standby");
+    }
 
-	var state_str = s.volume + "dB\n\n" +
-		$.trim(s.line1) + "\n" + $.trim(s.line2) + "\n\n" +
-		s.source + "\n" + s.channels_string + " -> " + s.speakers_str +
-		"\n" + s.surround_string;
-	$('#avr_state').text(state_str);
+    var state_str = s.volume + "dB\n\n" +
+        $.trim(s.line1) + "\n" + $.trim(s.line2) + "\n\n" +
+        s.source + "\n" + s.channels_string + " -> " + s.speakers_str +
+        "\n" + s.surround_string;
+    $('#avr_state').text(state_str);
 
-	if (s.volume != null) {
-		var vol = s.volume + "dB\n";
-		$('#avr_volume').text(vol);
-	}
-	if (s.mute) {
-		$('#avr_volume').text("Muted");
-	}
+    if (s.volume != null) {
+        var vol = s.volume + "dB\n";
+        $('#avr_volume').text(vol);
+    }
+    if (s.mute) {
+        $('#avr_volume').text("Muted");
+    }
 }
 
 function lost_connection() {
-	event_source.close();
-	connect_event_source();
+    event_source.close();
+    connect_event_source();
 }
 
 function maybe_lost_connection() {
-	if (event_source.readyState == 2) { // event_source is CLOSED
-		lost_connection();
-	}
-	// Else hope that event_source manages to re-sync itself
+    if (event_source.readyState == 2) { // event_source is CLOSED
+        lost_connection();
+    }
+    // Else hope that event_source manages to re-sync itself
 }
 
 function reset_watchdog() {
-	if (watchdog) {
-		clearTimeout(watchdog);
-	}
-	watchdog = setTimeout(lost_connection, 5000);
+    if (watchdog) {
+        clearTimeout(watchdog);
+    }
+    watchdog = setTimeout(lost_connection, 5000);
 }
 
 function connect_event_source() {
-	event_source = new EventSource('/events');
-	event_source.addEventListener('open', reset_watchdog, false);
-	event_source.addEventListener('error', maybe_lost_connection, false);
-	event_source.addEventListener('heartbeat', reset_watchdog, false);
-	event_source.addEventListener('avr_update', parse_avr_state, false);
+    event_source = new EventSource('/events');
+    event_source.addEventListener('open', reset_watchdog, false);
+    event_source.addEventListener('error', maybe_lost_connection, false);
+    event_source.addEventListener('heartbeat', reset_watchdog, false);
+    event_source.addEventListener('avr_update', parse_avr_state, false);
 }
 
 window.onload = connect_event_source;
 
-	</script>
+    </script>
 </head>
 <body>
 
 <div data-role="page" id="controls_page">
 
 <div data-role="header">
-	<h1>A/V remote control</h1>
+    <h1>A/V remote control</h1>
 </div>
 
 <div data-role="content" id="avr_controls">
-	<h2>Surround Receiver</h2>
+    <h2>Surround Receiver</h2>
 
-	<div class="ui-grid-b">
-		<div class="ui-block-a">
-			<a id="avr_standby_button" onclick="send_cmd('avr on_off')"
-			data-role="button" data-theme="a">
-				<i class="icon-off"></i>
-			</a>
-			<div id="avr_sourcecontrols" data-role="controlgroup">
-				<a onclick="send_cmd('avr source vid1')" data-role="button">
-					HDMI<!-- VID1/HTPC -->
-				</a>
-				<a onclick="send_cmd('avr source vid2')" data-role="button">
-					TV<!-- VID2/TV -->
-				</a>
-			</div>
-			<div id="avr_surroundcontrols" data-role="controlgroup">
-				<!-- <a onclick="send_cmd('avr surround 6ch')" data-role="button">
-					5.1
-				</a> -->
-				<a onclick="send_cmd('avr surround dolby')" data-role="button">
-					<i class="icon-film"></i> - 5.1<!-- Dolby -->
-				</a>
-				<!-- <a onclick="send_cmd('avr surround dts')" data-role="button">
-					DTS
-				</a> -->
-				<a onclick="send_cmd('avr surround stereo')" data-role="button">
-					<i class="icon-music"></i> - 2.0<!-- Stereo -->
-				</a>
-			</div>
-			<div id="avr_digitalcontrols" data-role="controlgroup">
-				<a onclick="send_cmd('avr dig+')" data-role="button">
-					Digital <i class="icon-chevron-up"></i>
-				</a>
-				<a onclick="send_cmd('avr dig-')" data-role="button">
-					Digital <i class="icon-chevron-down"></i>
-				</a>
-			</div>
-		</div>
-		<div class="ui-block-b">
-			<pre id="avr_state">Initializing...</pre>
-		</div>
-		<div class="ui-block-c">
-			<div id="avr_volumecontrols" data-role="controlgroup">
-				<a onclick="repeat_cmd('avr vol+', 5)" data-role="button">
-					<i class="icon-chevron-up"></i>
-					<i class="icon-chevron-up"></i>
-					<i class="icon-chevron-up"></i>
-				</a>
-				<a onclick="send_cmd('avr vol+')" data-role="button">
-					<i class="icon-chevron-up"></i>
-				</a>
-				<a onclick="send_cmd('avr mute')" data-theme="b" data-role="button">
-					<i class="icon-volume-off"></i>
-					<span id="avr_volume">Unknown</span>
-					<i class="icon-remove"></i>
-				</a>
-				<a onclick="send_cmd('avr vol-')" data-role="button">
-					<i class="icon-chevron-down"></i>
-				</a>
-				<a onclick="repeat_cmd('avr vol-', 5)" data-role="button">
-					<i class="icon-chevron-down"></i>
-					<i class="icon-chevron-down"></i>
-					<i class="icon-chevron-down"></i>
-				</a>
-			</div>
-		</div>
-	</div>
+    <div class="ui-grid-b">
+        <div class="ui-block-a">
+            <a id="avr_standby_button" onclick="send_cmd('avr on_off')"
+            data-role="button" data-theme="a">
+                <i class="icon-off"></i>
+            </a>
+            <div id="avr_sourcecontrols" data-role="controlgroup">
+                <a onclick="send_cmd('avr source vid1')" data-role="button">
+                    HDMI<!-- VID1/HTPC -->
+                </a>
+                <a onclick="send_cmd('avr source vid2')" data-role="button">
+                    TV<!-- VID2/TV -->
+                </a>
+            </div>
+            <div id="avr_surroundcontrols" data-role="controlgroup">
+                <!-- <a onclick="send_cmd('avr surround 6ch')" data-role="button">
+                    5.1
+                </a> -->
+                <a onclick="send_cmd('avr surround dolby')" data-role="button">
+                    <i class="icon-film"></i> - 5.1<!-- Dolby -->
+                </a>
+                <!-- <a onclick="send_cmd('avr surround dts')" data-role="button">
+                    DTS
+                </a> -->
+                <a onclick="send_cmd('avr surround stereo')" data-role="button">
+                    <i class="icon-music"></i> - 2.0<!-- Stereo -->
+                </a>
+            </div>
+            <div id="avr_digitalcontrols" data-role="controlgroup">
+                <a onclick="send_cmd('avr dig+')" data-role="button">
+                    Digital <i class="icon-chevron-up"></i>
+                </a>
+                <a onclick="send_cmd('avr dig-')" data-role="button">
+                    Digital <i class="icon-chevron-down"></i>
+                </a>
+            </div>
+        </div>
+        <div class="ui-block-b">
+            <pre id="avr_state">Initializing...</pre>
+        </div>
+        <div class="ui-block-c">
+            <div id="avr_volumecontrols" data-role="controlgroup">
+                <a onclick="repeat_cmd('avr vol+', 5)" data-role="button">
+                    <i class="icon-chevron-up"></i>
+                    <i class="icon-chevron-up"></i>
+                    <i class="icon-chevron-up"></i>
+                </a>
+                <a onclick="send_cmd('avr vol+')" data-role="button">
+                    <i class="icon-chevron-up"></i>
+                </a>
+                <a onclick="send_cmd('avr mute')" data-theme="b" data-role="button">
+                    <i class="icon-volume-off"></i>
+                    <span id="avr_volume">Unknown</span>
+                    <i class="icon-remove"></i>
+                </a>
+                <a onclick="send_cmd('avr vol-')" data-role="button">
+                    <i class="icon-chevron-down"></i>
+                </a>
+                <a onclick="repeat_cmd('avr vol-', 5)" data-role="button">
+                    <i class="icon-chevron-down"></i>
+                    <i class="icon-chevron-down"></i>
+                    <i class="icon-chevron-down"></i>
+                </a>
+            </div>
+        </div>
+    </div>
 
 </div>
 
 <div data-role="content" id="hdmi_controls">
-	<h2>HDMI Switch</h2>
+    <h2>HDMI Switch</h2>
 
 <!--
-	<a onclick="send_cmd('hdmi on')" data-inline="true" data-theme="a" data-role="button">
-		<i class="icon-off"></i>
-	</a>
+    <a onclick="send_cmd('hdmi on')" data-inline="true" data-theme="a" data-role="button">
+        <i class="icon-off"></i>
+    </a>
 -->
-	<div data-role="controlgroup" data-type="horizontal">
-		<a onclick="send_cmd('hdmi 1')" data-role="button">HTPC</a>
-		<a onclick="send_cmd('hdmi 2')" data-role="button">Get</a>
-		<a onclick="send_cmd('hdmi 3')" data-role="button">PS3</a>
-		<a onclick="send_cmd('hdmi 4')" data-role="button">Wii</a>
-	</div>
+    <div data-role="controlgroup" data-type="horizontal">
+        <a onclick="send_cmd('hdmi 1')" data-role="button">HTPC</a>
+        <a onclick="send_cmd('hdmi 2')" data-role="button">Get</a>
+        <a onclick="send_cmd('hdmi 3')" data-role="button">PS3</a>
+        <a onclick="send_cmd('hdmi 4')" data-role="button">Wii</a>
+    </div>
 </div>
 
 <div data-role="footer">
-	<p>by Johan Herland
-	&lt;<a href="mailto:johan@herland.net">johan@herland.net</a>&gt;</p>
+    <p>by Johan Herland
+    &lt;<a href="mailto:johan@herland.net">johan@herland.net</a>&gt;</p>
 </div>
 
 </div>
