@@ -31,10 +31,19 @@ class AVR_Device(AV_SerialDevice):
 		if not self.state.showing_volume:
 			amount += 1
 			self.state.showing_volume = True
-		cmd = "VOL UP" if up else "VOL DOWN"
-		return [cmd] * amount
+		return ["VOL UP" if up else "VOL DOWN"] * amount
 
-	# Map A/V commands to corresponding AVR command
+	def _adjust_digital(self, amount=0):
+		up = amount > 0
+		amount = abs(amount)
+		# If digital is not currently showing, we need to trigger it
+###		if not self.state.showing_digital:
+		yield "DIGITAL"
+###			self.state.showing_digital = True
+		for _ in range(amount):
+			yield "DIGITAL UP" if up else "DIGITAL DOWN"
+
+	# Map A/V commands to methods returning AVR commands
 	Commands = {
 		"on": lambda self: ["POWER ON"],
 		"off": lambda self: ["POWER OFF"],
@@ -53,8 +62,8 @@ class AVR_Device(AV_SerialDevice):
 		"surround dts": lambda self: ["DTS"],
 		"surround stereo": lambda self: ["STEREO"],
 
-		"dig+": lambda self: ["DIGITAL UP"],
-		"dig-": lambda self: ["DIGITAL DOWN"],
+		"dig+": lambda self: self._adjust_digital(+1),
+		"dig-": lambda self: self._adjust_digital(-1),
 
 		"update": lambda self: [] # We only _emit_ this command
 	}
