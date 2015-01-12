@@ -185,7 +185,7 @@ class AVR_Device(AV_SerialDevice):
 		command = self.Commands[cmd]
 		assert callable(command)
 		for command_str in command(self):
-			avr_cmd = AVR_Command(avr_cmd_string)
+			avr_cmd = AVR_Command(command_str)
 			dgram_spec = AVR_Datagram.PC_AVR_Command
 			dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
 			self.schedule_write(dgram)
