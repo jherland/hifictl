@@ -83,6 +83,7 @@ function parse_avr_state(e) {
 
 	ui_enable('#avr_sourcecontrols', !s.standby);
 	ui_enable('#avr_surroundcontrols', !s.standby);
+	ui_enable('#avr_digitalcontrols', !s.standby);
 	ui_enable('#avr_volumecontrols', !s.standby);
 	// TODO: Standby button color: yellow in standby, blue when on.
 	if (s.standby) {
