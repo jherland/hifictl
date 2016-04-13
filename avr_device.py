@@ -172,8 +172,17 @@ class AVR_Device(AV_SerialDevice):
             if self.status_handler:
                 self.status_handler(status)
             self.ready_to_write(True)
+            # Receiver has "episodes" where volume increases suddenly...
+            if self.state.volume is None:
+                pass
+            elif self.state.volume > -15:
+                self.debug("*** PANIC: Volume runaway, shutting down!")
+                self.handle_cmd("%s off" % (self.name))
+            elif self.state.volume > -20:
+                self.debug("*** WARNING: Volume runaway? decreasing...")
+                self.handle_cmd("%s vol-" % (self.name))
 
-    def handle_cmd(self, cmd, rest):
+    def handle_cmd(self, cmd, rest=''):
         if self.state.off:
             self.debug("Discarding '%s' while AVR is off" % (cmd))
             return
