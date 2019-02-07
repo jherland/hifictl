@@ -27,7 +27,7 @@ class AV_SerialDevice(AV_Device):
         """
         ret = ""
         for c in s:
-            if c >= 0x20 and c < 0x7f:
+            if c >= 0x20 and c < 0x7F:
                 ret += chr(c)
             else:
                 ret += "\\0x%02x" % (c)
@@ -36,13 +36,19 @@ class AV_SerialDevice(AV_Device):
     @classmethod
     def register_args(cls, name, arg_parser):
         arg_parser.add_argument(
-            "--%s-tty" % (name), default=cls.DefaultTTY, metavar="TTY",
+            "--%s-tty" % (name),
+            default=cls.DefaultTTY,
+            metavar="TTY",
             help="Path to serial port connected to %s"
-                 " (default: %%(default)s)" % (cls.Description))
+            " (default: %%(default)s)" % (cls.Description),
+        )
         arg_parser.add_argument(
-            "--%s-baud" % (name), default=cls.DefaultBaudRate, metavar="BPS",
+            "--%s-baud" % (name),
+            default=cls.DefaultBaudRate,
+            metavar="BPS",
             help="Serial port baud rate for %s"
-                 " (default: %%(default)s)" % (cls.Description))
+            " (default: %%(default)s)" % (cls.Description),
+        )
 
     def __init__(self, av_loop, name):
         AV_Device.__init__(self, av_loop, name)
@@ -59,8 +65,7 @@ class AV_SerialDevice(AV_Device):
         self.write_queue = []
         self.write_ready = True
 
-        self.av_loop.add_handler(
-            self.ser.fileno(), self.handle_io, self.av_loop.READ)
+        self.av_loop.add_handler(self.ser.fileno(), self.handle_io, self.av_loop.READ)
         self.check_writable = False
 
     def handle_io(self, fd, events):
@@ -107,12 +112,16 @@ class AV_SerialDevice(AV_Device):
             data = self.write_queue.pop(0)
             written = self.ser.write(data)
             assert written == len(data)
-            self.debug("Wrote %u bytes (%s)" % (
-                written, " ".join(["%02x" % (b) for b in data])))
+            self.debug(
+                "Wrote %u bytes (%s)"
+                % (written, " ".join(["%02x" % (b) for b in data]))
+            )
             self.ready_to_write(False)
 
     def schedule_write(self, data):
-        self.debug("Adding %u bytes to write queue (%s)" % (
-            len(data), " ".join(["%02x" % (b) for b in data])))
+        self.debug(
+            "Adding %u bytes to write queue (%s)"
+            % (len(data), " ".join(["%02x" % (b) for b in data]))
+        )
         self.write_queue.append(data)
         self.ready_to_write()

@@ -28,18 +28,13 @@ from http_server import AV_HTTPServer
 from av_loop import AV_Loop
 
 
-Devices = (
-    ("hdmi", HDMI_Switch),
-    ("avr",  AVR_Device),
-    ("http", AV_HTTPServer),
-)
+Devices = (("hdmi", HDMI_Switch), ("avr", AVR_Device), ("http", AV_HTTPServer))
 
 AVR_Device.DefaultTTY = "/dev/ttyUSB1"
 
 
 def main(args):
-    parser = argparse.ArgumentParser(
-        description="Controller daemon for A/V devices")
+    parser = argparse.ArgumentParser(description="Controller daemon for A/V devices")
     for name, cls in Devices:
         cls.register_args(name, parser)
 
@@ -48,7 +43,7 @@ def main(args):
 
     for name, cls in Devices:
         try:
-            print("*** Initializing %s..." % (cls.Description), end=' ')
+            print("*** Initializing %s..." % (cls.Description), end=" ")
             mainloop.add_device(name, cls(mainloop, name))
             print("done")
         except Exception as e:
@@ -62,11 +57,12 @@ def main(args):
         """Handle commands that are not handled elsewhere."""
         assert empty == ""
         print("*** Unknown A/V command: '%s'" % (cmd))
+
     mainloop.add_cmd_handler("", cmd_catch_all)
 
     print("Starting A/V controller main loop.")
     return mainloop.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

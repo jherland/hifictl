@@ -43,12 +43,15 @@ class AVR_State(object):
                 props.append("%idB" % (self.volume))
             else:
                 props.append("???dB")
-            props.append("%s/%s/%s/ -> %s" % (
-                self.source,
-                AVR_Status.channels_string(self.channels),
-                AVR_Status.surround_string(self.surround),
-                AVR_Status.speakers_string(self.speakers),
-            ))
+            props.append(
+                "%s/%s/%s/ -> %s"
+                % (
+                    self.source,
+                    AVR_Status.channels_string(self.channels),
+                    AVR_Status.surround_string(self.surround),
+                    AVR_Status.speakers_string(self.speakers),
+                )
+            )
             props.append("'%s'" % (self.line1))
             props.append("'%s'" % (self.line2))
         return "<AVR_State " + " ".join(props) + ">"
@@ -56,23 +59,26 @@ class AVR_State(object):
     def json(self):
         """Dump the current state as JSON."""
         import json
-        return json.dumps({
-            "off":             self.off,
-            "standby":         self.standby,
-            "mute":            self.mute,
-            "volume":          self.volume,
-            "surround":        list(self.surround),
-            "surround_string": AVR_Status.surround_string(self.surround, 3),
-            "surround_str":    AVR_Status.surround_str(self.surround),
-            "channels":        list(self.channels),
-            "channels_string": AVR_Status.channels_string(self.channels),
-            "speakers":        list(self.speakers),
-            "speakers_string": AVR_Status.speakers_string(self.speakers),
-            "speakers_str":    AVR_Status.speakers_str(self.speakers),
-            "source":          self.source,
-            "line1":           self.line1,
-            "line2":           self.line2,
-        })
+
+        return json.dumps(
+            {
+                "off": self.off,
+                "standby": self.standby,
+                "mute": self.mute,
+                "volume": self.volume,
+                "surround": list(self.surround),
+                "surround_string": AVR_Status.surround_string(self.surround, 3),
+                "surround_str": AVR_Status.surround_str(self.surround),
+                "channels": list(self.channels),
+                "channels_string": AVR_Status.channels_string(self.channels),
+                "speakers": list(self.speakers),
+                "speakers_string": AVR_Status.speakers_string(self.speakers),
+                "speakers_str": AVR_Status.speakers_str(self.speakers),
+                "source": self.source,
+                "line1": self.line1,
+                "line2": self.line2,
+            }
+        )
 
     def trigger_watchdog(self):
         self.off = True
@@ -83,7 +89,8 @@ class AVR_State(object):
         if self.watchdog:
             self.av_loop.remove_timeout(self.watchdog)
         self.watchdog = self.av_loop.add_timeout(
-            time.time() + timeout, self.trigger_watchdog)
+            time.time() + timeout, self.trigger_watchdog
+        )
 
     def update(self, status):
         # Record pre-update state, to compare to post-update state:
@@ -97,8 +104,11 @@ class AVR_State(object):
         self.mute = status.mute()
         if status.volume() is None:
             self.showing_volume = False
-            if not (self.off or self.standby or self.mute) and \
-               self.volume is None and not self.volume_triggered:
+            if (
+                not (self.off or self.standby or self.mute)
+                and self.volume is None
+                and not self.volume_triggered
+            ):
                 # We have no previous volume information, and
                 # none is present in the given status update.
                 # Send a vol- command to trigger volume display.

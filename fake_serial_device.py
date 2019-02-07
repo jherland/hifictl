@@ -37,8 +37,7 @@ class Fake_SerialDevice(AV_Device):
         newterm[3] = newterm[3] & ~termios.ECHO  # lflags
         termios.tcsetattr(self.master, termios.TCSAFLUSH, newterm)
 
-        self.av_loop.add_handler(
-            self.master, self.handle_io, self.av_loop.READ)
+        self.av_loop.add_handler(self.master, self.handle_io, self.av_loop.READ)
 
     def __del__(self):
         # Close the remaining descriptor
@@ -62,8 +61,7 @@ class Fake_SerialDevice(AV_Device):
             # Ignore HUP and EIO, etc. FIXME: Is this safe?
             pass
 
-        events &= ~(
-            self.av_loop.READ | self.av_loop.WRITE | self.av_loop.ERROR)
+        events &= ~(self.av_loop.READ | self.av_loop.WRITE | self.av_loop.ERROR)
         if events:
             self.debug("Unhandled events: %u" % (events))
 
@@ -92,12 +90,12 @@ def main(args):
     mainloop = IOLoop.instance()
     fake = Fake_SerialDevice(mainloop, "fake")
 
-    print("%s is listening on %s" % (
-        fake.Description, fake.client_name()))
+    print("%s is listening on %s" % (fake.Description, fake.client_name()))
 
     return mainloop.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     sys.exit(main(sys.argv[1:]))

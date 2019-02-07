@@ -89,8 +89,8 @@ class AVR_Datagram(object):
         assert dgram.startswith(dgram_start), "Unexpected start keyword"
         assert dgram[6] == dgram_type, "Unexpected type"
         assert dgram[7] == dgram_len, "Unexpected data length"
-        data = dgram[8:8 + dgram_len]
-        cksum = dgram[8 + dgram_len:]
+        data = dgram[8 : 8 + dgram_len]
+        cksum = dgram[8 + dgram_len :]
         assert cksum == cls.calc_cksum(data), "Failed checksum"
         return data
 
@@ -103,5 +103,6 @@ class AVR_Datagram(object):
         dgram_start, dgram_type, dgram_len = dgram_spec
         assert isinstance(data, bytes)
         assert len(data) == dgram_len, "Incorrect data length"
-        return dgram_start + bytes([dgram_type, dgram_len]) \
-            + data + cls.calc_cksum(data)
+        return (
+            dgram_start + bytes([dgram_type, dgram_len]) + data + cls.calc_cksum(data)
+        )

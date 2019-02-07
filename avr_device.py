@@ -48,32 +48,26 @@ class AVR_Device(AV_SerialDevice):
         "on": lambda self: ["POWER ON"],
         "off": lambda self: ["POWER OFF"],
         "on_off": _toggle_standby,  # Toggle on/off
-
         "mute": lambda self: ["MUTE"],
         "vol+": lambda self: self._adjust_volume(+1),
         "vol-": lambda self: self._adjust_volume(-1),
         "vol?": lambda self: self._adjust_volume(0),  # Trigger volume display
-
         "source vid1": lambda self: ["VID1"],
         "source vid2": lambda self: ["VID2"],
-
         "surround 6ch": lambda self: ["6CH/8CH"],
         "surround dolby": lambda self: ["DOLBY"],
         "surround dts": lambda self: ["DTS"],
         "surround stereo": lambda self: ["STEREO"],
-
         "dig+": lambda self: self._adjust_digital(+1),
         "dig-": lambda self: self._adjust_digital(-1),
-
-        "update": lambda self: []  # We only _emit_ this command
+        "update": lambda self: [],  # We only _emit_ this command
     }
 
     def __init__(self, av_loop, name):
         AV_SerialDevice.__init__(self, av_loop, name)
 
         for subcmd in self.Commands:
-            self.av_loop.add_cmd_handler(
-                "%s %s" % (self.name, subcmd), self.handle_cmd)
+            self.av_loop.add_cmd_handler("%s %s" % (self.name, subcmd), self.handle_cmd)
 
         self.status_handler = None
 
@@ -96,7 +90,8 @@ class AVR_Device(AV_SerialDevice):
             self.av_loop.remove_timeout(self.write_timer[0])
         self.write_timer = (
             self.av_loop.add_timeout(deadline, self._delayed_ready),
-            deadline)
+            deadline,
+        )
 
     def ready_to_write(self, assign=None):
         if assign is None:
@@ -140,21 +135,21 @@ class AVR_Device(AV_SerialDevice):
         self.readbuf += self.ser.read(d_len - len(self.readbuf))
         if len(self.readbuf) < d_len:
             # self.debug("Incomplete dgram (got %u/%u bytes): %s" % (
-                        # len(self.readbuf), d_len,
-                        # self.human_readable(self.readbuf)))
+            # len(self.readbuf), d_len,
+            # self.human_readable(self.readbuf)))
             return
 
         # Find start of datagram
         i = self.readbuf.find(d_start)
         if i < 0:  # beyond len(self.readbuf) - len(d_start)
             # self.debug("No start of dgram in %u bytes: %s" % (
-                # len(self.readbuf),
-                # self.human_readable(self.readbuf)))
-            self.readbuf = self.readbuf[-(len(d_start) - 1):]
+            # len(self.readbuf),
+            # self.human_readable(self.readbuf)))
+            self.readbuf = self.readbuf[-(len(d_start) - 1) :]
             return
         elif i > 0:  # dgram starts at index i
             # self.debug("dgram starts at index %u in %s" % (i,
-                # self.human_readable(self.readbuf)))
+            # self.human_readable(self.readbuf)))
             self.readbuf = self.readbuf[i:]
         assert self.readbuf.startswith(d_start)
 
@@ -162,7 +157,7 @@ class AVR_Device(AV_SerialDevice):
             return
 
         # self.debug("parsing self.readbuf: %s" % (
-            # self.human_readable(self.readbuf)))
+        # self.human_readable(self.readbuf)))
         dgram, self.readbuf = self.readbuf[:d_len], self.readbuf[d_len:]
         assert isinstance(dgram, bytes)
         data = AVR_Datagram.parse_dgram(dgram, dgram_spec)
@@ -182,7 +177,7 @@ class AVR_Device(AV_SerialDevice):
                 self.debug("*** WARNING: Volume runaway? decreasing...")
                 self.handle_cmd("%s vol-" % (self.name))
 
-    def handle_cmd(self, cmd, rest=''):
+    def handle_cmd(self, cmd, rest=""):
         if self.state.off:
             self.debug("Discarding '%s' while AVR is off" % (cmd))
             return
@@ -208,7 +203,8 @@ def main(args):
     from av_loop import AV_Loop
 
     parser = argparse.ArgumentParser(
-        description="Communicate with " + AVR_Device.Description)
+        description="Communicate with " + AVR_Device.Description
+    )
     AVR_Device.register_args("avr", parser)
 
     IOLoop.configure(AV_Loop, parsed_args=vars(parser.parse_args(args)))
@@ -225,11 +221,13 @@ def main(args):
             if cmd:
                 print(" -> Received cmd '%s'" % (cmd))
                 mainloop.submit_cmd(cmd)
+
     mainloop.add_handler(sys.stdin.fileno(), handle_stdin, mainloop.READ)
 
     def cmd_catch_all(empty, cmd):
         assert empty == ""
         print("*** Unknown command: '%s'" % (cmd))
+
     mainloop.add_cmd_handler("", cmd_catch_all)
 
     for arg in args:
@@ -239,5 +237,5 @@ def main(args):
     return mainloop.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

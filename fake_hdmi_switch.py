@@ -29,8 +29,9 @@ class Fake_HDMI_Switch(Fake_SerialDevice):
             output = cmd
         if cmd == "v":
             # FIXME: More output
-            output = "Marmitek BV, The Netherlands. " \
-                "All rights reserved. www.marmitek.com"
+            output = (
+                "Marmitek BV, The Netherlands. " "All rights reserved. www.marmitek.com"
+            )
         if cmd == "?":
             # FIXME: output
             output = "???"
@@ -43,20 +44,19 @@ def main(args):
 
     from av_loop import AV_Loop
 
-    parser = argparse.ArgumentParser(
-        description=Fake_HDMI_Switch.Description)
+    parser = argparse.ArgumentParser(description=Fake_HDMI_Switch.Description)
     Fake_HDMI_Switch.register_args("hdmi", parser)
 
     IOLoop.configure(AV_Loop, parsed_args=vars(parser.parse_args(args)))
     mainloop = IOLoop.instance()
     hdmi = Fake_HDMI_Switch(mainloop, "hdmi")
 
-    print("You can now start ./av_control.py --hdmi-tty %s" % (
-        hdmi.client_name()))
+    print("You can now start ./av_control.py --hdmi-tty %s" % (hdmi.client_name()))
 
     return mainloop.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     sys.exit(main(sys.argv[1:]))

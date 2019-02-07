@@ -17,6 +17,7 @@ class AV_Device(object):
         """Convenience method for debug output."""
         if self.Debug:
             import time
+
             ts = time.time() - self.av_loop.t0
             print("%7.2f: %s" % (ts, self), s)
 

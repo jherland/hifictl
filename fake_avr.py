@@ -22,7 +22,8 @@ class Fake_AVR(Fake_SerialDevice):
 
     EmptyIcons = bytes([0x00] * 14)
     DefaultIcons = bytes(
-        [0xc0, 0x00, 0x00, 0x00, 0xfd, 0xfb, 0x7a, 0x00, 0xc0] + [0x00] * 5)
+        [0xC0, 0x00, 0x00, 0x00, 0xFD, 0xFB, 0x7A, 0x00, 0xC0] + [0x00] * 5
+    )
 
     StatusMap = {
         "standby": ("              ", "              ", EmptyIcons),
@@ -55,8 +56,10 @@ class Fake_AVR(Fake_SerialDevice):
         self.write_timer.stop()
 
     def write_now(self):
-        os.write(self.master, AVR_Datagram.build_dgram(
-            self.status().dgram(), self.SendDGramSpec))
+        os.write(
+            self.master,
+            AVR_Datagram.build_dgram(self.status().dgram(), self.SendDGramSpec),
+        )
 
     def status(self):
         """Return AVR_Status diagram for current state."""
@@ -65,10 +68,13 @@ class Fake_AVR(Fake_SerialDevice):
     def handle_read(self):
         self.recv_data += os.read(self.master, 1024)
         while len(self.recv_data) >= self.recv_dgram_len:
-            dgram = self.recv_data[:self.recv_dgram_len]
-            self.recv_data = self.recv_data[self.recv_dgram_len:]
-            self.handle_command(AVR_Command.from_dgram(
-                AVR_Datagram.parse_dgram(dgram, self.RecvDGramSpec)))
+            dgram = self.recv_data[: self.recv_dgram_len]
+            self.recv_data = self.recv_data[self.recv_dgram_len :]
+            self.handle_command(
+                AVR_Command.from_dgram(
+                    AVR_Datagram.parse_dgram(dgram, self.RecvDGramSpec)
+                )
+            )
 
     def gen_status(self, key):
         line1, line2, icons = self.StatusMap[key]
@@ -77,7 +83,7 @@ class Fake_AVR(Fake_SerialDevice):
 
     def handle_command(self, cmd):
         now = time.time()
-        print("%7.2f: %10s" % (now - self.t0, cmd.keyword), end=' ')
+        print("%7.2f: %10s" % (now - self.t0, cmd.keyword), end=" ")
         if self.standby:
             if cmd.keyword == "POWER ON":
                 self.standby = False
@@ -89,7 +95,8 @@ class Fake_AVR(Fake_SerialDevice):
             elif cmd.keyword == "MUTE":
                 self.mute = not self.mute
                 self.status_queue.flush(
-                    self.gen_status(self.mute and "mute" or "default"))
+                    self.gen_status(self.mute and "mute" or "default")
+                )
             elif cmd.keyword == "VOL DOWN" or cmd.keyword == "VOL UP":
                 self.volume += cmd.keyword == "VOL DOWN" and -1 or +1
                 self.status_queue.flush(self.gen_status("default"))
@@ -110,12 +117,12 @@ def main(args):
     mainloop = IOLoop.instance()
     avr = Fake_AVR(mainloop, "avr")
 
-    print("You can now start ./av_control.py --avr-tty %s" % (
-        avr.client_name()))
+    print("You can now start ./av_control.py --avr-tty %s" % (avr.client_name()))
 
     return mainloop.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     sys.exit(main(sys.argv[1:]))

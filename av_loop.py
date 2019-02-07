@@ -5,7 +5,6 @@ from tornado.ioloop import IOLoop
 
 
 class AV_Loop(IOLoop.configurable_default()):
-
     def initialize(self, parsed_args):
         IOLoop.configurable_default().initialize(self)
         self.install()

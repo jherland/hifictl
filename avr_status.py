@@ -34,16 +34,13 @@ class AVR_Status(object):
         report, or throw an exception if parsing failed.
         """
         assert len(data) == 48, "Unexpected length"
-        assert data[0] == 0xf0
+        assert data[0] == 0xF0
         assert data[15] == 0x00
-        assert data[16] == 0xf1
+        assert data[16] == 0xF1
         assert data[31] == 0x00
-        assert data[32] == 0xf2
+        assert data[32] == 0xF2
         assert data[47] == 0x00
-        return (
-            str(data[1:15], 'ascii'),
-            str(data[17:31], 'ascii'),
-            data[33:47])
+        return (str(data[1:15], "ascii"), str(data[17:31], "ascii"), data[33:47])
 
     @classmethod
     def from_dgram(cls, dgram):
@@ -64,7 +61,8 @@ class AVR_Status(object):
             self.source(),
             self.channels_string(self.channels()),
             self.surround_string(self.surround()),
-            self.speakers_string(self.speakers()))
+            self.speakers_string(self.speakers()),
+        )
 
     def __hash__(self):
         return hash(self.line1) ^ hash(self.line2) ^ hash(self.icons)
@@ -72,9 +70,10 @@ class AVR_Status(object):
     def __eq__(self, other):
         try:
             return (
-                self.line1 == other.line1 and
-                self.line2 == other.line2 and
-                self.icons == other.icons)
+                self.line1 == other.line1
+                and self.line2 == other.line2
+                and self.icons == other.icons
+            )
         except:
             return False
 
@@ -91,9 +90,16 @@ class AVR_Status(object):
         assert len(self.line2) == 14
         assert len(self.icons) == 14
         return (
-            chr(0xf0) + self.line1 + chr(0x00) +
-            chr(0xf1) + self.line2 + chr(0x00) +
-            chr(0xf2) + str(self.icons, 'ascii') + chr(0x00))
+            chr(0xF0)
+            + self.line1
+            + chr(0x00)
+            + chr(0xF1)
+            + self.line2
+            + chr(0x00)
+            + chr(0xF2)
+            + str(self.icons, "ascii")
+            + chr(0x00)
+        )
 
     def standby(self):
         """Decode and return whether AVR is in standby mode."""
@@ -106,7 +112,7 @@ class AVR_Status(object):
     def mute(self):
         """Decode and return whether AVR is in mute mode."""
         # when muted, the VFD flashes "MUTE" at 1 Hz
-        if self.line1.strip() in ('MUTE', '') and not self.line2.strip():
+        if self.line1.strip() in ("MUTE", "") and not self.line2.strip():
             return True
         return False
 
@@ -120,7 +126,7 @@ class AVR_Status(object):
     def digital(self):
         """Decode and return digital input gate from AVR status."""
         try:
-            _, dig_str = self.line1.split('/')
+            _, dig_str = self.line1.split("/")
             return dig_str.strip()
         except ValueError:
             return None
@@ -474,7 +480,7 @@ class AVR_Status(object):
         ret = set()
         if buf[0] & 0x30:
             ret.add("DVD")
-        if buf[1] & 0xc0:
+        if buf[1] & 0xC0:
             ret.add("CD")
         if buf[2] & 0x60:
             ret.add("TAPE")
@@ -482,7 +488,7 @@ class AVR_Status(object):
             ret.add("6CH")
         if buf[3] & 0x60:
             ret.add("8CH")
-        if buf[0] & 0xc0:
+        if buf[0] & 0xC0:
             ret.add("VID1")
         if buf[0] & 0x03:
             ret.add("VID2")
