@@ -1,126 +1,140 @@
 #!/usr/bin/env python
 
-import sys
+import asyncio
+import logging
+import serial_asyncio
 
-from av_serial_device import AV_SerialDevice
+
+logger = logging.getLogger(__name__)
 
 
-class HDMI_Switch(AV_SerialDevice):
-    """Simple wrapper for communicating with an HDMI switch.
+class Marmitek_HDMI_Switch:
+    """Async communication with a Marmitek Connect411 HDMI switch.
 
-    Encapsulate RS-232 commands being sent to a Marmitek Connect411 HDMI
-    switch connected to a serial port.
+    Encapsulate RS-232 commands and responses to/from the serial port
+    connected to this switch.
     """
 
-    Description = "Marmitek Connect411 HDMI switch"
+    # Map simple string commands to corresponding HDMI switch serial commands
+    codes = [  # (command name, serial port byte)
+        ("1", b"1"),
+        ("2", b"2"),
+        ("3", b"3"),
+        ("4", b"4"),
+        ("on", b"5"),
+        ("off", b"5"),
+        ("on/off", b"5"),
+        ("version", b"v"),
+        ("help", b"?"),
+    ]
 
-    DefaultBaudRate = 19200
-
-    # Marmitek has strange newline conventions
-    LF = b"\n\r"
-
-    # Map A/V command to corresponding HDMI switch command
-    Commands = {
-        "1": LF + b"1" + LF,
-        "2": LF + b"2" + LF,
-        "3": LF + b"3" + LF,
-        "4": LF + b"4" + LF,
-        "on": LF + b"5" + LF,
-        "off": LF + b"5" + LF,
-        "version": LF + b"v" + LF,
-        "help": LF + b"?" + LF,
-    }
-
-    Init_Input = (
-        b"Marmitek BV, The Netherlands. All rights reserved. "
-        b"www.marmitek.com" + LF + b">"
+    # Emitted by HDMI Switch on startup
+    startup_message = (
+        b"Marmitek BV, The Netherlands. All rights reserved. www.marmitek.com"
     )
 
-    def __init__(self, av_loop, name):
-        AV_SerialDevice.__init__(self, av_loop, name)
+    @classmethod
+    async def create(cls, url, baudrate=19200, *args, **kwargs):
+        reader, writer = await serial_asyncio.open_serial_connection(
+            url=url, baudrate=baudrate, *args, **kwargs
+        )
+        return cls(reader, writer)
 
-        self.input_handler = None
+    def __init__(self, from_tty, to_tty):
+        self.logger = logger.getChild(self.__class__.__name__)
+        self.from_tty = from_tty
+        self.to_tty = to_tty
+        self.rts = asyncio.Event()  # ready-to-send
+        self.rts.set()
 
-        for subcmd in self.Commands:
-            self.av_loop.add_cmd_handler("%s %s" % (self.name, subcmd), self.handle_cmd)
+    async def recv(self, response_queue):
+        logger = self.logger.getChild("recv")
+        codemap = {byte: cmd for cmd, byte in self.codes}
+        while True:
+            try:
+                data = await self.from_tty.readuntil(b">")
+            except asyncio.IncompleteReadError as e:
+                logger.debug("incomplete read:")
+                data = e.partial
+            logger.debug(f"<<< {data!r}")
+            line = data.strip(b"\r\n>")
+            if line:
+                try:
+                    command = codemap[line[0:1]]
+                    output = line[1:].lstrip(b"\r\n").decode("ascii")
+                    self.rts.set()
+                except KeyError:
+                    command = None  # Unknown
+                    output = line
+                await response_queue.put((command, output))
+            if self.from_tty.at_eof():
+                await response_queue.put(None)  # EOF
+                logger.debug("finished")
+                break
 
-    def handle_read(self):
-        s = self.ser.read(64 * 1024)
-        if s == self.Init_Input:
-            self.debug("started.")
-            # Trigger wake from standby
-            self.handle_cmd(self.name + " on", "")
-        elif s == b"\0":
-            self.ready_to_write(False)
-            self.debug("stopped.")
-        elif s.strip() in ("1", "2", "3", "4", "5", "v", "?"):
-            self.debug("Executed command '%s'" % (str(s.strip(), "ascii")))
-        elif s != b">":
-            self.debug("Unrecognized input: '%s'" % (self.human_readable(s)))
+    async def send(self, command_queue):
+        logger = self.logger.getChild("send")
+        lf = b"\n\r"  # Marmitek has strange newline conventions
+        commands = {cmd: lf + byte + lf for cmd, byte in self.codes}
+        while True:
+            try:
+                await asyncio.wait_for(self.rts.wait(), 1)
+            except asyncio.TimeoutError:
+                pass
+            self.rts.clear()
 
-        if s.endswith(b">"):
-            self.ready_to_write(True)
-            self.debug("ready.")
-
-        if self.input_handler:
-            self.input_handler(str(s, "ascii").replace("\r", "").strip())
-
-    def handle_cmd(self, cmd, rest):
-        cmd = cmd.split()
-        assert cmd[0] == self.name
-        assert len(cmd) == 2
-        self.schedule_write(self.Commands[cmd[1]])
+            cmd = await command_queue.get()
+            if cmd is None:  # Shutdown
+                logger.debug("finished")
+                self.to_tty.close()
+                await self.to_tty.wait_closed()
+                break
+            data = commands[cmd]
+            logger.debug(f">>> {data!r}")
+            self.to_tty.write(data)
+            await self.to_tty.drain()
 
 
-def main(args):
-    import os
-    import argparse
-    from tornado.ioloop import IOLoop
+async def main():
+    # TODO: print("Write HDMI switch commands to stdin (Ctrl-D to stop)")
+    hdmi = await Marmitek_HDMI_Switch.create("/dev/ttyUSB0")
+    commands = asyncio.Queue()
+    responses = asyncio.Queue()
 
-    from av_loop import AV_Loop
+    async def issue_commands(commands):
+        await commands.put("on")
+        await commands.put("version")
+        await commands.put("help")
+        await commands.put("1")
+        await commands.put("2")
+        await commands.put("3")
+        await commands.put("4")
+        await commands.put("3")
+        await commands.put("2")
+        await commands.put("1")
+        await commands.put("off")
+        await commands.put(None)
 
-    parser = argparse.ArgumentParser(
-        description="Communicate with " + HDMI_Switch.Description
-    )
-    HDMI_Switch.register_args("hdmi", parser)
-
-    IOLoop.configure(AV_Loop, parsed_args=vars(parser.parse_args(args)))
-    mainloop = IOLoop.instance()
-    hdmi = HDMI_Switch(mainloop, "hdmi")
-
-    def print_serial_data(data):
-        if data:
-            print(data, end=" ")
-            if not data.endswith(">"):
+    async def print_responses(responses):
+        while True:
+            response = await responses.get()
+            if response is None:  # shutdown
+                break
+            command, output = response
+            print(f"> {command}")
+            if output:
+                print()
+                print(output)
                 print()
 
-    hdmi.input_handler = print_serial_data
-
-    # Forward commands from stdin to avr
-    def handle_stdin(fd, events):
-        assert fd == sys.stdin.fileno()
-        assert events & mainloop.READ
-        cmds = str(os.read(sys.stdin.fileno(), 64 * 1024), "ascii")
-        for cmd in cmds.split("\n"):
-            cmd = cmd.strip()
-            if cmd:
-                print(" -> Received cmd '%s'" % (cmd))
-                mainloop.submit_cmd(cmd)
-
-    mainloop.add_handler(sys.stdin.fileno(), handle_stdin, mainloop.READ)
-
-    def cmd_catch_all(empty, cmd):
-        assert empty == ""
-        print("*** Unknown command: '%s'" % (cmd))
-
-    mainloop.add_cmd_handler("", cmd_catch_all)
-
-    for arg in args:
-        mainloop.submit_cmd(arg)
-
-    print("Write HDMI switch commands to stdin (Ctrl-C to stop me)")
-    return mainloop.run()
+    await asyncio.gather(
+        issue_commands(commands),
+        hdmi.send(commands),
+        hdmi.recv(responses),
+        print_responses(responses),
+    )
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    logging.basicConfig(level=logging.DEBUG)
+    asyncio.run(main())
