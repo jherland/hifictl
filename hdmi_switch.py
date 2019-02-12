@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import asyncio
 import logging
@@ -46,6 +46,9 @@ class Marmitek_HDMI_Switch:
         self.to_tty = to_tty
         self.rts = asyncio.Event()  # ready-to-send
         self.rts.set()
+        self.logger.info(
+            "Communicating via %s", self.to_tty.transport.serial.name
+        )
 
     async def recv(self, response_queue):
         logger = self.logger.getChild("recv")
@@ -66,10 +69,11 @@ class Marmitek_HDMI_Switch:
                 except KeyError:
                     command = None  # Unknown
                     output = line
+                logger.info(f"received ({command}, {output})")
                 await response_queue.put((command, output))
             if self.from_tty.at_eof():
                 await response_queue.put(None)  # EOF
-                logger.debug("finished")
+                logger.info("finished")
                 break
 
     async def send(self, command_queue):
@@ -80,16 +84,17 @@ class Marmitek_HDMI_Switch:
             try:
                 await asyncio.wait_for(self.rts.wait(), 1)
             except asyncio.TimeoutError:
-                pass
+                logger.debug("failed to get RTS, sending anyway")
             self.rts.clear()
 
             cmd = await command_queue.get()
             if cmd is None:  # Shutdown
-                logger.debug("finished")
+                logger.info("finished")
                 self.to_tty.close()
                 await self.to_tty.wait_closed()
                 break
             data = commands[cmd]
+            logger.info(f"sending {cmd}")
             logger.debug(f">>> {data!r}")
             self.to_tty.write(data)
             await self.to_tty.drain()
