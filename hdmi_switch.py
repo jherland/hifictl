@@ -100,9 +100,9 @@ class Marmitek_HDMI_Switch:
             await self.to_tty.drain()
 
 
-async def main():
+async def main(serial_port):
     # TODO: print("Write HDMI switch commands to stdin (Ctrl-D to stop)")
-    hdmi = await Marmitek_HDMI_Switch.create("/dev/ttyUSB0")
+    hdmi = await Marmitek_HDMI_Switch.create(serial_port)
     commands = asyncio.Queue()
     responses = asyncio.Queue()
 
@@ -141,5 +141,24 @@ async def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    asyncio.run(main())
+    import argparse
+
+    parser = argparse.ArgumentParser(description=Marmitek_HDMI_Switch.__doc__)
+    parser.add_argument(
+        "--device",
+        "-D",
+        default="/dev/ttyUSB0",
+        help="Serial port for HDMI switch (default: /dev/ttyUSB0)",
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="count", default=0, help="Increase log level"
+    )
+    parser.add_argument(
+        "--quiet", "-q", action="count", default=0, help="Decrease log level"
+    )
+    args = parser.parse_args()
+
+    loglevel = logging.WARNING + 10 * (args.quiet - args.verbose)
+    logging.basicConfig(level=loglevel)
+
+    asyncio.run(main(args.device))
