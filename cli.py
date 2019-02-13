@@ -11,16 +11,25 @@ logger = logging.getLogger(__name__)
 
 
 async def cli(prompt, lines, in_f=sys.stdin, out_f=sys.stdout):
-    def do_prompt():
+    """Provide a command-line prompt and accept lines of input.
+
+    Each line input is put onto the 'lines' queue, and the next prompt
+    is issued (after the 'lines' consumer has called .task_done()).
+
+    When EOF is encountered, this is signalled by putting None onto the
+    queue and returning immediately (without waiting for the consumer).
+    """
+
+    async def do_prompt():
+        await lines.join()
         if prompt is not None:
             print(prompt, end="", file=out_f, flush=True)
 
-    loop = asyncio.get_event_loop()
-    loop.call_soon(do_prompt)
+    await do_prompt()
     async for line in lines_from(in_f):
         logger.debug("cli() read %s", repr(line))
         await lines.put(line.rstrip("\r\n"))
-        loop.call_soon(do_prompt)
+        await do_prompt()
     await lines.put(None)  # Propagate EOF
     logger.info("cli() finished")
 
@@ -33,11 +42,10 @@ async def main():
     async def print_lines(lines):
         async for line in items_from(lines):
             print(f"< {line}")
+            lines.task_done()
 
     lines = asyncio.Queue()
-    await asyncio.gather(
-        cli("> " if interactive else None, lines), print_lines(lines)
-    )
+    await asyncio.gather(cli("> " if interactive else None, lines), print_lines(lines))
 
     if interactive:
         print("Bye!")
