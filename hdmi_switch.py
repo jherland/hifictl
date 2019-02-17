@@ -30,13 +30,6 @@ class Marmitek_HDMI_Switch:
         "help": b"?",
     }
 
-    # Emitted by HDMI Switch when power is supplied
-    startup_message = (
-        b"Command Line Interface for Connect411 HDMI switch. "
-        b"Copyright (c) 2008\n\rMarmitek BV, The Netherlands. "
-        b"All rights reserved. www.marmitek.com"
-    )
-
     @classmethod
     async def create(cls, url, baudrate=19200, *args, **kwargs):
         reader, writer = await serial_asyncio.open_serial_connection(
@@ -49,7 +42,8 @@ class Marmitek_HDMI_Switch:
         self.from_tty = from_tty
         self.to_tty = to_tty
         self.pending = asyncio.Queue(maxsize=1)  # Command in-progress
-        self.logger.info("Communicating via %s", self.to_tty.transport.serial.name)
+        self.logger.info(
+            "Communicating via %s", self.to_tty.transport.serial.name)
 
     @dataclass
     class Response:
@@ -92,7 +86,6 @@ class Marmitek_HDMI_Switch:
             body = None
         return self.Response(command, body, data, expected)
 
-    # TODO: Fix when HDMI switch is OFF and nothing is received. (timeout?)
     async def recv(self, response_queue):
         """Read commands and their responses from the HDMI switch.
 
@@ -133,15 +126,23 @@ class Marmitek_HDMI_Switch:
                 break
             try:
                 data = lf + self.codes[cmd] + lf
+            except KeyError:
+                if cmd:
+                    logger.error(f"Unknown command {cmd!r}")
+            else:
                 logger.info(f"sending {cmd!r}")
                 logger.debug(f">>> {data!r}")
                 self.to_tty.write(data)
                 await self.to_tty.drain()
-                await self.pending.put(cmd)
-                await self.pending.join()
-            except KeyError:
-                if cmd:
-                    logger.error(f"Unknown command {cmd!r}")
+                try:
+                    await asyncio.wait_for(self.pending.put(cmd), 3)
+                except asyncio.TimeoutError:
+                    logger.warning(f"Pending timeout (previous)!")
+                else:
+                    try:
+                        await asyncio.wait_for(self.pending.join(), 3)
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Pending timeout (current)!")
             command_queue.task_done()
 
 
