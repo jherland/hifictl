@@ -45,7 +45,9 @@ async def main():
             lines.task_done()
 
     lines = asyncio.Queue()
-    await asyncio.gather(cli("> " if interactive else None, lines), print_lines(lines))
+    await asyncio.gather(
+        cli("> " if interactive else None, lines), print_lines(lines)
+    )
 
     if interactive:
         print("Bye!")
