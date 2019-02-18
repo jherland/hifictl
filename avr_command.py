@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-
-
-class AVR_Command(object):
+class AVR_Command:
     """Encaspulate AVR remote control commands."""
 
     # The following dict is copied from the table on pages 10-11 in the
@@ -113,7 +110,7 @@ class AVR_Command(object):
         self.keyword = keyword
 
     def __str__(self):
-        return "<AVR_Command: '%s'>" % (self.keyword)
+        return f"<AVR_Command: '{self.keyword}'>"
 
     def dgram(self):
         return self.Commands[self.keyword]
