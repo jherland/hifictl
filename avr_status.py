@@ -1,22 +1,94 @@
-#!/usr/bin/env python
+from dataclasses import dataclass
 
 
-class AVR_Status(object):
+def decode_avr_text(text):
+    return text.decode("ascii").replace("`", "\u2161")
+
+
+def encode_avr_text(text):
+    return text.replace("\u2161", "`").encode("ascii")
+
+
+def surround_string(surround_set):
+    """Return a string listing the given surround modes, separated by "+"."""
+    return "+".join(sorted(surround_set))
+
+
+def surround_string_short(surround_set, limit=3):
+    """Return a short string representing the given set of surround modes.
+
+    Abbreviate each active surround mode in the given set to 2-4 char names,
+    and return these separated by "+". If more than limit are active, return
+    "***" instead.
+    """
+    if len(surround_set) > limit:
+        return "***"
+
+    d = {  # Map long to short surround names.
+        "DOLBY DIGITAL EX": "DDEX",
+        "DOLBY DIGITAL": "DD",
+        "DOLBY PRO LOGIC II": "DPL2",
+        "DOLBY PRO LOGIC": "DPL",
+        "DOLBY 3 STEREO": "D3S",
+        "STEREO": "ST",
+        "DOLBY HEADPHONE": "DH",
+        "DOLBY VIRTUAL": "DV",
+        "DTS ES": "DTES",
+        "DTS": "DTS",
+        "LOGIC 7": "L7",
+        "VMAX": "VMAX",
+        "DSP": "DSP",
+        "7CH.STEREO": "7CHS",
+        "5CH.STEREO": "5CHS",
+        "SURR.OFF": "SROF",
+    }
+    return "+".join(sorted([d[s] for s in surround_set]))
+
+
+def channels_string(channels_set):
+    """Return a string of the form X.Y from a set of input channels.
+
+    Convert a set of input channels (as returned by .channels()) into a string
+    like "2.0", "5.1" or "7.1".
+    """
+    lfe = 1 if "LFE" in channels_set else 0
+    return "{}.{}".format(len(channels_set) - lfe, lfe)
+
+
+def speakers_string(speakers_set):
+    """Return a string describing the speakers in the given set."""
+    sets = [
+        speakers_set & set(("L", "R", "l", "r")),
+        speakers_set & set(("C", "c")),
+        speakers_set & set(("LFE",)),
+        speakers_set & set(("SL", "SR", "sl", "sr")),
+        speakers_set & set(("SBL", "SBR", "sbl", "sbr")),
+    ]
+    return "/".join(["+".join(sorted(s)) for s in sets if s])
+
+
+def speakers_string_short(speakers_set):
+    """Return a short string of the form X.Y with the #speakers."""
+    lfe = 1 if "LFE" in speakers_set else 0
+    return "{}.{}".format(len(speakers_set) - lfe, lfe)
+
+
+@dataclass(frozen=True)
+class AVR_Status:
     """Encapsulate a single AVR status update."""
 
-    @staticmethod
-    def decode_avr_line(line):
-        return line.replace("`", "\u2161")
+    line1: str
+    line2: str
+    icons: bytes
 
-    @staticmethod
-    def parse_dgram(data):
-        """Parse a datagram containing status info from the AVR.
+    @classmethod
+    def parse(cls, data):
+        """Parse the data section of a status datagram from the AVR.
 
-        The AVR continuously sends a 48-byte datagrams over the serial
-        port. The datagram contains the same information that is visible
-        on the AVR front display. The datagram is structured as follows
-        (excluding the protocol overhead that is stripped by
-        AVR_Connection):
+        The AVR continuously sends a 48 bytes of status info (wrapped in a
+        datagram as parsed by avr_dgram) over the serial port. The data
+        contains the same information that is visible on the AVR front display,
+        and is structured as follows:
          - 16 bytes: VFD first line of characters:
             - 1 byte:   0xf0
             - 14 bytes: ASCII data (e.g. "DVD           ")
@@ -30,109 +102,104 @@ class AVR_Status(object):
             - 14 bytes: VFD icons (see below comments for details)
             - 1 byte:   0x00
 
-        Return a 3-tuple containing the 3 data fields of the status
-        report, or throw an exception if parsing failed.
+        Parse these 48 bytes, and return an object that contains these 3 data
+        fields of the status report, or throw ValueError if parsing failed.
         """
-        assert len(data) == 48, "Unexpected length"
-        assert data[0] == 0xF0
-        assert data[15] == 0x00
-        assert data[16] == 0xF1
-        assert data[31] == 0x00
-        assert data[32] == 0xF2
-        assert data[47] == 0x00
-        return (str(data[1:15], "ascii"), str(data[17:31], "ascii"), data[33:47])
-
-    @classmethod
-    def from_dgram(cls, dgram):
-        return cls(*cls.parse_dgram(dgram))
-
-    def __init__(self, line1, line2, icons):
-        assert len(line1) == 14
-        assert len(line2) == 14
-        assert len(icons) == 14
-        self.line1 = self.decode_avr_line(line1)
-        self.line2 = self.decode_avr_line(line2)
-        self.icons = icons
+        if len(data) != 48:
+            raise ValueError(f"Unexpected length ({len(data)})")
+        if not (
+            data[0] == 0xF0
+            and data[15] == 0x00
+            and data[16] == 0xF1
+            and data[31] == 0x00
+            and data[32] == 0xF2
+            and data[47] == 0x00
+        ):
+            raise ValueError(f"Malformed data ({data!r})")
+        return cls(
+            decode_avr_text(data[1:15]),
+            decode_avr_text(data[17:31]),
+            data[33:47],
+        )
 
     def __str__(self):
         return "<AVR_Status: '%s' '%s' %s/%s/%s -> %s>" % (
             self.line1,
             self.line2,
-            self.source(),
-            self.channels_string(self.channels()),
-            self.surround_string(self.surround()),
-            self.speakers_string(self.speakers()),
+            self.source,
+            channels_string(self.channels),
+            surround_string(self.surround),
+            speakers_string(self.speakers),
         )
 
-    def __hash__(self):
-        return hash(self.line1) ^ hash(self.line2) ^ hash(self.icons)
+    # def __hash__(self):
+    # return hash(self.line1) ^ hash(self.line2) ^ hash(self.icons)
 
-    def __eq__(self, other):
-        try:
-            return (
-                self.line1 == other.line1
-                and self.line2 == other.line2
-                and self.icons == other.icons
-            )
-        except:
-            return False
+    # def __eq__(self, other):
+    # try:
+    # return (
+    # self.line1 == other.line1
+    # and self.line2 == other.line2
+    # and self.icons == other.icons
+    # )
+    # except:
+    # return False
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    # def __ne__(self, other):
+    # return not self.__eq__(other)
 
-    def dgram(self):
-        """Create a datagram containing AVR status info.
+    @property
+    def data(self):
+        """Re-create the raw AVR status data.
 
-        Return a 58-byte datagram containing the information in this
-        object, with the encoding explained in the parse_dgram() docs.
+        Return a 48-byte data portion of an AVR datagram containing the
+        information in this object.
         """
         assert len(self.line1) == 14
         assert len(self.line2) == 14
         assert len(self.icons) == 14
         return (
-            chr(0xF0)
-            + self.line1
-            + chr(0x00)
-            + chr(0xF1)
-            + self.line2
-            + chr(0x00)
-            + chr(0xF2)
-            + str(self.icons, "ascii")
-            + chr(0x00)
+            bytes([0xF0])
+            + encode_avr_text(self.line1)
+            + bytes([0x00, 0xF1])
+            + encode_avr_text(self.line2)
+            + bytes([0x00, 0xF2])
+            + self.icons
+            + bytes([0x00])
         )
 
+    @property
     def standby(self):
-        """Decode and return whether AVR is in standby mode."""
-        # if self.icons is all 0x00, then assume we're in standby mode
-        for b in self.icons:
-            if b:
-                return False
-        return True
+        """Return whether AVR is in standby mode."""
+        # Assume we're  in standby if all self.icons is all 0x00
+        return not any(self.icons)
 
-    def mute(self):
-        """Decode and return whether AVR is in mute mode."""
+    @property
+    def muted(self):
+        """Return whether AVR is in mute mode."""
         # when muted, the VFD flashes "MUTE" at 1 Hz
-        if self.line1.strip() in ("MUTE", "") and not self.line2.strip():
-            return True
-        return False
+        return self.line1.strip() in {"MUTE", ""} and self.line2.strip() == ""
 
+    @property
     def volume(self):
-        """Decode and return current volume from AVR status."""
+        """Return current volume."""
         line = self.line2.strip()
         if line.startswith("VOL ") and line.endswith("dB"):
             return int(line[4:7])
         return None
 
+    @property
     def digital(self):
-        """Decode and return digital input gate from AVR status."""
+        """Return digital input gate."""
         try:
             _, dig_str = self.line1.split("/")
             return dig_str.strip()
         except ValueError:
             return None
 
+    @property
     def surround(self):
-        """Decode and return the surround mode from AVR status.
+        """Return the current surround mode.
 
         Returns the set of surround/processing modes enabled in this
         AVR status. The set contains zero of more of the following
@@ -239,51 +306,8 @@ class AVR_Status(object):
             ret.add("SURR.OFF")
         return ret
 
-    @staticmethod
-    def surround_string(surround_set, limit_width=100):
-        """Return a string with the given set of surround modes.
-
-        Return a string listing the given surround modes, separated by
-        "+". If more than limit_width are active, return "***" instead.
-        """
-        if len(surround_set) > limit_width:
-            return "***"
-        return "+".join(sorted(surround_set))
-
-    @staticmethod
-    def surround_str(surround_set, limit_width=3):
-        """Return a short string with the given set of surround modes.
-
-        Abbreviate the given surround mode names to 2-4 chars, and
-        return them separated by "+". If more than limit_width are
-        active, return "***" instead.
-        """
-        if len(surround_set) > limit_width:
-            return "***"
-
-        d = {  # Map long to short surround names.
-            "DOLBY DIGITAL EX": "DDEX",
-            "DOLBY DIGITAL": "DD",
-            "DOLBY PRO LOGIC II": "DPL2",
-            "DOLBY PRO LOGIC": "DPL",
-            "DOLBY 3 STEREO": "D3S",
-            "STEREO": "ST",
-            "DOLBY HEADPHONE": "DH",
-            "DOLBY VIRTUAL": "DV",
-            "DTS ES": "DTES",
-            "DTS": "DTS",
-            "LOGIC 7": "L7",
-            "VMAX": "VMAX",
-            "DSP": "DSP",
-            "7CH.STEREO": "7CHS",
-            "5CH.STEREO": "5CHS",
-            "SURR.OFF": "SROF",
-        }
-        return "+".join(sorted([d[s] for s in surround_set]))
-
-    # The following lists the reverse-engineered interpretation of
-    # icons[4:8] and how they correspond to the channel/speaker icons
-    # on the AVR front display:
+    # The following lists the reverse-engineered interpretation of icons[4:8]
+    # and how they correspond to the channel/speaker icons on the AVR display:
     #
     #  - icons[4] & 0x80: L (large)
     #  - icons[4] & 0x40: L (small)
@@ -318,15 +342,16 @@ class AVR_Status(object):
     #  - icons[7] & 0x02: SBR (signal)
     #  - icons[7] & 0x01: SBR (large)
 
+    @property
     def channels(self):
-        """Decode and return the channels present in the input signal.
+        """Return the channels present in the input signal.
 
         Returns the set of channels present in the input signal. The
         set contains zero of more of the following elements:
          - "L"   - left channel
          - "C"   - center channel
          - "R"   - right channel
-         - "LFE" - low frequency effects (sub-woofer)
+         - "LFE" - low frequency effects (subwoofer)
          - "SL"  - surround left
          - "SR"  - surround right
          - "SBL" - surround back left
@@ -357,18 +382,9 @@ class AVR_Status(object):
             ret.add("SBR")  # surround back right
         return ret
 
-    @staticmethod
-    def channels_string(channels_set):
-        """Return a string of the form X.Y from a set of input channels.
-
-        This converts a set of input channels (as returned by
-        .channels()) into a string typically like "2.0", "5.1" or "7.1".
-        """
-        lfe = ("LFE" in channels_set) and 1 or 0
-        return "%u.%u" % (len(channels_set) - lfe, lfe)
-
+    @property
     def speakers(self):
-        """Decode and return the set of speakers used by to the AVR.
+        """Return the set of speakers used by the AVR.
 
         Returns a set listing the speakers that the AVR is currently
         using, as encoded in this AVR status message. The possible set
@@ -425,24 +441,7 @@ class AVR_Status(object):
             ret.add("sbr")
         return ret
 
-    @staticmethod
-    def speakers_string(speakers_set):
-        """Return a string describing the speakers in the given set."""
-        sets = [
-            speakers_set & set(("L", "R", "l", "r")),
-            speakers_set & set(("C", "c")),
-            speakers_set & set(("LFE",)),
-            speakers_set & set(("SL", "SR", "sl", "sr")),
-            speakers_set & set(("SBL", "SBR", "sbl", "sbr")),
-        ]
-        return "/".join(["+".join(sorted(s)) for s in sets if s])
-
-    @staticmethod
-    def speakers_str(speakers_set):
-        """Return a short string of the form X.Y with the #speakers."""
-        lfe = ("LFE" in speakers_set) and 1 or 0
-        return "%u.%u" % (len(speakers_set) - lfe, lfe)
-
+    @property
     def source(self):
         """Decode and return the selected source from AVR status.
 
