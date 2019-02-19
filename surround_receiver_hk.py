@@ -2,10 +2,12 @@
 
 import asyncio
 import logging
-import serial_asyncio
+from serial_asyncio import open_serial_connection
 
+import avr_command
 import avr_dgram
 from avr_status import AVR_Status
+from avr_state import AVR_State
 
 
 logger = logging.getLogger(__name__)
@@ -21,105 +23,145 @@ class HarmanKardon_Surround_Receiver:
     in_spec = avr_dgram.AVR_PC_Status
     out_spec = avr_dgram.PC_AVR_Command
     # Map simple string commands to corresponding HDMI switch serial commands
-    codes = {  # (command name, serial port byte)
-        "1": b"1",
-        "2": b"2",
-        "3": b"3",
-        "4": b"4",
-        "on": b"5",
-        "off": b"5",
-        "on/off": b"5",
-        "version": b"v",
-        "help": b"?",
-    }
+    codes = avr_command.AVR_Command.Commands
+    # TODO REMOVE: {  # (command name, serial port byte)
+        #"mute": b"1",
+        #"standby": b"2",
+        #"3": b"3",
+        #"4": b"4",
+        #"on": b"5",
+        #"off": b"5",
+        #"on/off": b"5",
+        #"version": b"v",
+        #"help": b"?",
+    #}
 
-    @classmethod
-    async def create(cls, url, baudrate=38400, *args, **kwargs):
-        reader, writer = await serial_asyncio.open_serial_connection(
-            url=url, baudrate=baudrate, *args, **kwargs
-        )
-        return cls(reader, writer)
-
-    def __init__(self, from_tty, to_tty):
+    def __init__(self, serial_port, baudrate=38400, *args, **kwargs):
         self.logger = logger.getChild(self.__class__.__name__)
-        self.from_tty = from_tty
-        self.to_tty = to_tty
-        self.pending = asyncio.Queue(maxsize=1)  # Command in-progress
-        self.logger.info(
-            "Communicating via %s", self.to_tty.transport.serial.name
-        )
+        kwargs.update({"url": serial_port, "baudrate": baudrate})
+        self.serial_args = (args, kwargs)
+        self.reader = None
+        self.writer = None
+        self.state = AVR_State()
+        self.command_queue = asyncio.Queue()
 
-    def parse_dgram(self, dgram):
-        try:
-            return AVR_Status.parse(avr_dgram.parse(dgram, self.in_spec))
-        except ValueError:
-            return None
+    async def connect(self):
+        args, kwargs = self.serial_args
+        if self.writer is not None:
+            self.writer.close()
+            await self.writer.wait_closed()
+        self.reader, self.writer = await open_serial_connection(*args, **kwargs)
+        self.logger.info("Connected via %s", self.writer.transport.serial.name)
 
-    async def recv(self, response_queue):
-        """Read commands and their responses from the HDMI switch.
+    async def control(self, new_state):
+        prev = self.state
+        self.state = new_state
 
-        Put corresponding Response objects onto the 'response_queue'.
-        If EOF is received over the serial port, put None as a sentinel
-        onto the 'response_queue' and exit immediately.
+        if not self.command_queue.empty():
+            return  # Hold off while there are pending commands
+        if self.state.off or self.state.standby or self.state.muted:
+            return  # Nothing to do
+
+        if self.state.volume is None:
+            await self.command_queue.put("VOL DOWN")  # Trigger volume display
+            await self.command_queue.join()
+        assert self.state.source is not None
+        if self.state.digital is None:
+            await self.command_queue.put("DIGITAL")  # Trigger digital display
+            await self.command_queue.join()
+        assert self.state.line1 is not None
+        assert self.state.line2 is not None
+
+        # Trigger wake from standby if we just went from OFF -> STANDBY
+        if prev.off and self.state.standby:
+            await self.command_queue.put("POWER ON")
+            await self.command_queue.join()
+
+        # My receiver has "episodes" where volume increases suddenly...
+        if self.state.volume is None:
+            pass
+        elif self.state.volume > -15:
+            self.logger.error("*** PANIC: Volume runaway, shutting down!")
+            await self.command_queue.put("POWER OFF")
+            await self.command_queue.join()
+        elif self.state.volume > -20:
+            self.logger.warning("*** WARNING: Volume runaway? decreasing...")
+            await self.command_queue.put("VOL DOWN")
+            await self.command_queue.join()
+
+    async def recv(self, state_queue):
+        """Read state updates from surround receiver and put onto state_queue.
+
+        If EOF is received over the serial port, put None as a sentinel onto
+        the 'state_queue' and exit immediately.
         """
         logger = self.logger.getChild("recv")
         while True:
             try:
-                dgram = await self.from_tty.read(
-                    avr_dgram.dgram_len(self.in_spec))
+                dgram = await asyncio.wait_for(
+                    self.reader.read(avr_dgram.dgram_len(self.in_spec)), 10)
+            except asyncio.TimeoutError:
+                logger.warning("Nothing incoming. Re-establishing connection.")
+                await self.connect()
+                continue
             except asyncio.IncompleteReadError as e:
                 logger.debug("incomplete read:")
                 dgram = e.partial
             logger.debug(f"<<< {dgram!r}")
-            status = self.parse_dgram(dgram)
-            if status is not None:
-                logger.info(f"received {status}")
-                await response_queue.put(status)
-                await response_queue.join()
-            if self.from_tty.at_eof():
-                await response_queue.put(None)  # EOF
+            try:
+                status = AVR_Status.parse(avr_dgram.parse(dgram, self.in_spec))
+            except ValueError as e:
+                logger.warning(f"Discarding datagram: {e}")
+            else:
+                logger.debug(f"received {status}")
+                new_state = self.state.update(status)
+                if new_state != self.state:
+                    logger.debug(f"state -> {new_state}")
+                    await state_queue.put(new_state)
+                    await state_queue.join()
+                    await self.control(new_state)
+            if self.reader.at_eof():
+                await state_queue.put(None)  # EOF
                 logger.info("finished")
                 break
 
-    async def send(self, command_queue):
-        """Write receiver commands from 'command_queue' to the serial port."""
+    async def send(self, command_queue=None):
+        """Write receiver commands from 'command_queue' to the serial port.
+
+        Use existing self.command_queue if none given, otherwise replace
+        self.command_queue with the one given.
+        """
         logger = self.logger.getChild("send")
-        lf = b"\n\r"  # Marmitek has strange newline conventions
+        if command_queue is not None:
+            self.command_queue = command_queue
         while True:
-            cmd = await command_queue.get()
+            cmd = await self.command_queue.get()
             if cmd is None:  # Shutdown
                 logger.info("finished")
-                self.to_tty.close()
-                await self.to_tty.wait_closed()
+                self.writer.close()
+                await self.writer.wait_closed()
                 break
             try:
-                data = lf + self.codes[cmd] + lf
+                data = avr_dgram.build(self.codes[cmd], self.out_spec)
             except KeyError:
                 if cmd:
                     logger.error(f"Unknown command {cmd!r}")
             else:
                 logger.info(f"sending {cmd!r}")
                 logger.debug(f">>> {data!r}")
-                self.to_tty.write(data)
-                await self.to_tty.drain()
-                try:
-                    await asyncio.wait_for(self.pending.put(cmd), 3)
-                except asyncio.TimeoutError:
-                    logger.warning(f"Pending timeout (previous)!")
-                else:
-                    try:
-                        await asyncio.wait_for(self.pending.join(), 3)
-                    except asyncio.TimeoutError:
-                        logger.warning(f"Pending timeout (current)!")
-            command_queue.task_done()
+                self.writer.write(data)
+                await self.writer.drain()
+            self.command_queue.task_done()
 
 
 async def main(serial_port):
     from cli import cli
 
-    surround = await HarmanKardon_Surround_Receiver.create(serial_port)
+    surround = HarmanKardon_Surround_Receiver(serial_port)
+    await surround.connect()
+
     commands = asyncio.Queue()
-    responses = asyncio.Queue()
+    states = asyncio.Queue()
 
     print("Write surround receiver commands to stdin (Ctrl-D to stop).")
     print("Available commands:")
@@ -127,20 +169,20 @@ async def main(serial_port):
         print(f"    {cmd}")
     print()
 
-    async def print_responses(responses):
+    async def print_states(states):
         while True:
-            s = await responses.get()
+            s = await states.get()
             if s is None:  # shutdown
                 print("Bye!")
                 break
             print(s)
-            responses.task_done()
+            states.task_done()
 
     await asyncio.gather(
         cli("surround> ", commands),
         surround.send(commands),
-        surround.recv(responses),
-        print_responses(responses),
+        surround.recv(states),
+        print_states(states),
     )
 
 
