@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# TODO: readline support
+# TODO: Accept callable to massage input lines before posting to queue
 from utils import lines_from, items_from
 
 import asyncio
