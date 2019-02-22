@@ -1,0 +1,49 @@
+$ ./hdmi_switch.py
+Write HDMI switch commands to stdin (Ctrl-D to stop).
+Available commands:
+    1
+    2
+    3
+    4
+    on
+    off
+    on/off
+    version
+    help
+
+hdmi> on
+< on
+hdmi> 1
+< 1
+hdmi> 2
+< 2
+hdmi> 3
+< 3
+hdmi> 4
+< 4
+hdmi> version
+< version
+
+Command Line Interface for Connect411 HDMI switch. Copyright (c) 2008
+Marmitek BV, The Netherlands. All rights reserved. www.marmitek.com
+
+4 x 1 HDMI switch + Audio out
+Version: 1.0
+
+hdmi> help
+< help
+
+Command Line Interface Help:
+===========================================================================
+   1     Switch to Port 1
+   2     Switch to Port 2
+   3     Switch to Port 3
+   4     Switch to Port 4
+   5     Power On / Off
+   v     H/W and S/W Version
+   help  Command list
+   ?
+
+hdmi> off
+< off
+hdmi> Bye!

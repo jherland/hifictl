@@ -90,11 +90,13 @@ function parse_avr_state(e) {
         return $('#avr_state').text("Standby");
     }
 
-    var state_str = s.volume + "dB\n\n" +
-        $.trim(s.line1) + "\n" + $.trim(s.line2) + "\n\n" +
-        s.source + "\n" + s.channels_string + " -> " + s.speakers_str +
-        "\n" + s.surround_string;
-    $('#avr_state').text(state_str);
+    $('#avr_state').text(
+        s.volume + "dB\n\n" +
+        $.trim(s.line1) + "\n" +
+        $.trim(s.line2) + "\n\n" +
+        s.source + "\n" +
+        s.channels_string + " -> " + s.speakers_string_short + "\n" +
+        s.surround_string);
 
     if (s.volume != null) {
         var vol = s.volume + "dB\n";

@@ -65,7 +65,7 @@ class HarmanKardon_Surround_Receiver:
         if self.state.volume is None:
             await self.command_queue.put("VOL DOWN")  # Trigger volume display
             await self.command_queue.join()
-        assert self.state.source is not None
+        # TODO: REMOVE? assert self.state.source is not None
         if self.state.digital is None:
             await self.command_queue.put("DIGITAL")  # Trigger digital display
             await self.command_queue.join()

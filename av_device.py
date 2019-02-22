@@ -6,7 +6,7 @@ class AV_Device(object):
 
     Description = "Unspecified A/V device"
 
-    Debug = False
+    Debug = True
 
     @classmethod
     def register_args(cls, name, arg_parser):
