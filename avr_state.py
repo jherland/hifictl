@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import json
 import time
 from typing import FrozenSet, Optional
 
@@ -47,27 +46,25 @@ class AVR_State:
         return "<AVR_State " + " ".join(props) + ">"
 
     def json(self):
-        """Retrun current state as JSON."""
-        return json.dumps(
-            {
-                "off": self.off,
-                "standby": self.standby,
-                "muted": self.muted,
-                "volume": self.volume,
-                "source": self.source,
-                "digital": self.digital,
-                "surround": list(self.surround),
-                "surround_string": avr_status.surround_string(self.surround),
-                "surround_string_short": avr_status.surround_string_short(self.surround),
-                "channels": list(self.channels),
-                "channels_string": avr_status.channels_string(self.channels),
-                "speakers": list(self.speakers),
-                "speakers_string": avr_status.speakers_string(self.speakers),
-                "speakers_string_short": avr_status.speakers_string_short(self.speakers),
-                "line1": self.line1,
-                "line2": self.line2,
-            }
-        )
+        """Return current state as JSON."""
+        return {
+            "off": self.off,
+            "standby": self.standby,
+            "muted": self.muted,
+            "volume": self.volume,
+            "source": self.source,
+            "digital": self.digital,
+            "surround": list(self.surround),
+            "surround_string": avr_status.surround_string(self.surround),
+            "surround_string_short": avr_status.surround_string_short(self.surround),
+            "channels": list(self.channels),
+            "channels_string": avr_status.channels_string(self.channels),
+            "speakers": list(self.speakers),
+            "speakers_string": avr_status.speakers_string(self.speakers),
+            "speakers_string_short": avr_status.speakers_string_short(self.speakers),
+            "line1": self.line1,
+            "line2": self.line2,
+        }
 
     def update(self, status):
         """Return a new state after folding in the given status update.
