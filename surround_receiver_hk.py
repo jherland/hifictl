@@ -22,19 +22,27 @@ class HarmanKardon_Surround_Receiver:
 
     in_spec = avr_dgram.AVR_PC_Status
     out_spec = avr_dgram.PC_AVR_Command
-    # Map simple string commands to corresponding HDMI switch serial commands
-    codes = avr_command.AVR_Command.Commands
-    # TODO REMOVE: {  # (command name, serial port byte)
-        #"mute": b"1",
-        #"standby": b"2",
-        #"3": b"3",
-        #"4": b"4",
-        #"on": b"5",
-        #"off": b"5",
-        #"on/off": b"5",
-        #"version": b"v",
-        #"help": b"?",
-    #}
+
+    # Map simple string commands to corresponding H/K serial commands
+    commands = {
+        "on": avr_command.AVR_Command.Commands["POWER ON"],
+        "off": avr_command.AVR_Command.Commands["POWER OFF"],
+        #"on_off": _toggle_standby,  # Toggle on/off
+        "mute": avr_command.AVR_Command.Commands["MUTE"],
+        "vol+": avr_command.AVR_Command.Commands["VOL UP"],
+        "vol-": avr_command.AVR_Command.Commands["VOL DOWN"],
+        "vol?": avr_command.AVR_Command.Commands["VOL DOWN"],
+        "source vid1": avr_command.AVR_Command.Commands["VID1"],
+        "source vid2": avr_command.AVR_Command.Commands["VID2"],
+        "surround 6ch": avr_command.AVR_Command.Commands["6CH/8CH"],
+        "surround dolby": avr_command.AVR_Command.Commands["DOLBY"],
+        "surround dts": avr_command.AVR_Command.Commands["DTS"],
+        "surround stereo": avr_command.AVR_Command.Commands["STEREO"],
+        "dig+": avr_command.AVR_Command.Commands["DIGITAL UP"],
+        "dig-": avr_command.AVR_Command.Commands["DIGITAL DOWN"],
+        "dig?": avr_command.AVR_Command.Commands["DIGITAL"],
+        #"update": lambda self: [],  # We only _emit_ this command
+    }
 
     def __init__(self, serial_port, baudrate=38400, *args, **kwargs):
         self.logger = logger.getChild(self.__class__.__name__)
@@ -63,18 +71,18 @@ class HarmanKardon_Surround_Receiver:
             return  # Nothing to do
 
         if self.state.volume is None:
-            await self.command_queue.put("VOL DOWN")  # Trigger volume display
+            await self.command_queue.put("vol?")  # Trigger volume display
             await self.command_queue.join()
         # TODO: REMOVE? assert self.state.source is not None
         if self.state.digital is None:
-            await self.command_queue.put("DIGITAL")  # Trigger digital display
+            await self.command_queue.put("dig?")  # Trigger digital display
             await self.command_queue.join()
         assert self.state.line1 is not None
         assert self.state.line2 is not None
 
         # Trigger wake from standby if we just went from OFF -> STANDBY
         if prev.off and self.state.standby:
-            await self.command_queue.put("POWER ON")
+            await self.command_queue.put("on")
             await self.command_queue.join()
 
         # My receiver has "episodes" where volume increases suddenly...
@@ -82,11 +90,11 @@ class HarmanKardon_Surround_Receiver:
             pass
         elif self.state.volume > -15:
             self.logger.error("*** PANIC: Volume runaway, shutting down!")
-            await self.command_queue.put("POWER OFF")
+            await self.command_queue.put("off")
             await self.command_queue.join()
         elif self.state.volume > -20:
             self.logger.warning("*** WARNING: Volume runaway? decreasing...")
-            await self.command_queue.put("VOL DOWN")
+            await self.command_queue.put("vol-")
             await self.command_queue.join()
 
     async def recv(self, state_queue):
@@ -142,7 +150,7 @@ class HarmanKardon_Surround_Receiver:
                 await self.writer.wait_closed()
                 break
             try:
-                data = avr_dgram.build(self.codes[cmd], self.out_spec)
+                data = avr_dgram.build(self.commands[cmd], self.out_spec)
             except KeyError:
                 if cmd:
                     logger.error(f"Unknown command {cmd!r}")
@@ -165,7 +173,7 @@ async def main(serial_port):
 
     print("Write surround receiver commands to stdin (Ctrl-D to stop).")
     print("Available commands:")
-    for cmd in surround.codes.keys():
+    for cmd in surround.commands.keys():
         print(f"    {cmd}")
     print()
 
