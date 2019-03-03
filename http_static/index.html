@@ -52,40 +52,40 @@ function ui_enable(selector, enable) {
     }
 }
 
-function parse_audio_state(e) {
-    var s = JSON.parse(e.data); // extract AVR state info
+function parse_audio_state(event) {
+    var state = JSON.parse(event.data); // extract AVR state info
 
-    if (!s) {
+    if (!state) {
         return $('#audio_state').text("Unknown");
     }
 
-    ui_enable('#audio_controls', !s.off);
-    if (s.off) {
+    ui_enable('#audio_controls', !state.off);
+    if (state.off) {
         return $('#audio_state').text("Off");
     }
 
-    ui_enable('#audio_sourcecontrols', !s.standby);
-    ui_enable('#audio_surroundcontrols', !s.standby);
-    ui_enable('#audio_digitalcontrols', !s.standby);
-    ui_enable('#audio_volumecontrols', !s.standby);
+    ui_enable('#audio_sourcecontrols', !state.standby);
+    ui_enable('#audio_surroundcontrols', !state.standby);
+    ui_enable('#audio_digitalcontrols', !state.standby);
+    ui_enable('#audio_volumecontrols', !state.standby);
     // TODO: Standby button color: yellow in standby, blue when on.
-    if (s.standby) {
+    if (state.standby) {
         return $('#audio_state').text("Standby");
     }
 
     $('#audio_state').text(
-        s.volume + "dB\n\n" +
-        $.trim(s.line1) + "\n" +
-        $.trim(s.line2) + "\n\n" +
-        s.source + "\n" +
-        s.channels_string + " -> " + s.speakers_string_short + "\n" +
-        s.surround_string);
+        state.volume + "dB\n\n" +
+        $.trim(state.line1) + "\n" +
+        $.trim(state.line2) + "\n\n" +
+        state.source + "\n" +
+        state.channels_string + " -> " + state.speakers_string_short + "\n" +
+        state.surround_string);
 
-    if (s.volume != null) {
-        var vol = s.volume + "dB\n";
+    if (state.volume != null) {
+        var vol = state.volume + "dB\n";
         $('#audio_volume').text(vol);
     }
-    if (s.mute) {
+    if (state.mute) {
         $('#audio_volume').text("Muted");
     }
 }
@@ -98,6 +98,7 @@ function connect_socket() {
     };
     socket.onmessage = function(event) {
         console.log("message:", event);
+        parse_audio_state(event)
     };
     socket.onerror = function(event) {
         console.log("error:", event);
