@@ -11,7 +11,6 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-responder = "*"
 pyserial-asyncio = "*"
 aiohttp = "*"
 
