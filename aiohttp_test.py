@@ -14,6 +14,33 @@ audio_commands = asyncio.Queue()
 audio_states = asyncio.Queue()
 last_audio_state = None
 hifictl = None
+ws_connections = set()
+
+
+async def audio_state_listener(audio_states):
+    global ws_connections
+    global last_audio_state
+    while True:
+        state = await audio_states.get()
+        if state is None:  # shutdown
+            logger.info('Bye!')
+            break
+        logger.info(state)
+        last_audio_state = state.json()
+        for conn in ws_connections:
+            await conn.send_json(last_audio_state)
+        audio_states.task_done()
+
+
+async def forward_command(cmd):
+    try:
+        category, rest = cmd.split(' ', 1)
+        if category != 'audio':
+            raise ValueError(f'Unknown category {category!r}')
+    except Exception as e:
+        logger.warning('Command failed: %s', e)
+    else:
+        await audio_commands.put(rest)
 
 
 async def on_startup(app):
@@ -22,21 +49,10 @@ async def on_startup(app):
     surround = HarmanKardon_Surround_Receiver('/dev/ttyUSB1')
     await surround.connect()
 
-    async def collect_states(audio_states):
-        global last_audio_state
-        while True:
-            state = await audio_states.get()
-            if state is None:  # shutdown
-                logger.info('Bye!')
-                break
-            logger.info(state)
-            last_audio_state = state
-            audio_states.task_done()
-
     hifictl = asyncio.gather(
         surround.send(audio_commands),
         surround.recv(audio_states),
-        collect_states(audio_states),
+        audio_state_listener(audio_states),
     )
 
 
@@ -44,20 +60,6 @@ async def on_cleanup(app):
     logger.info('cleaning up...')
     await audio_commands.put(None)
     await hifictl
-
-
-async def communicate(cmd=None):
-    if cmd is not None:
-        try:
-            category, rest = cmd.split(' ', 1)
-            if category != 'audio':
-                raise ValueError(f'Unknown category {category!r}')
-        except Exception as e:
-            logger.warning('Command failed: %s', e)
-        else:
-            await audio_commands.put(rest)
-
-    return last_audio_state.json()
 
 
 async def index(request):
@@ -69,19 +71,19 @@ async def websocket_handler(request):
     await ws.prepare(request)
     logger.info('websocket connection open')
 
-    status = await communicate()
-    await ws.send_json(status)
+    await ws.send_json(last_audio_state)
+    ws_connections.add(ws) # future updates are sent by audio_state_listener()
 
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
             logger.info('got command: %s', msg.data)
-            status = await communicate(msg.data)
-            await ws.send_json(status)
+            await forward_command(msg.data)
         elif msg.type == aiohttp.WSMsgType.ERROR:
             logger.warning(
                 'ws connection closed with exception %s', ws.exception())
 
     logger.info('websocket connection closed')
+    ws_connections.remove(ws)
     return ws
 
 
