@@ -142,12 +142,10 @@ class HarmanKardon_Surround_Receiver:
         logger = self.logger.getChild("send")
         if command_queue is not None:
             self.command_queue = command_queue
+
         while True:
             cmd = await self.command_queue.get()
-            if cmd is None:  # Shutdown
-                logger.info("finished")
-                self.writer.close()
-                await self.writer.wait_closed()
+            if cmd is None:  # shutdown
                 break
             try:
                 data = avr_dgram.build(self.commands[cmd], self.out_spec)
@@ -160,7 +158,11 @@ class HarmanKardon_Surround_Receiver:
                 self.writer.write(data)
                 await self.writer.drain()
             self.command_queue.task_done()
+            await asyncio.sleep(0.25)
 
+        logger.info("finished")
+        self.writer.close()
+        await self.writer.wait_closed()
 
 async def main(serial_port):
     from cli import cli
