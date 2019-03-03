@@ -13,6 +13,7 @@ verify_ssl = true
 [packages]
 responder = "*"
 pyserial-asyncio = "*"
+aiohttp = "*"
 
 [requires]
 python_version = "3.7"
