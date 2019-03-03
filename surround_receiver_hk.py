@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from serial_asyncio import open_serial_connection
+from time import monotonic as now
 
 import avr_command
 import avr_dgram
@@ -142,6 +143,7 @@ class HarmanKardon_Surround_Receiver:
         logger = self.logger.getChild("send")
         if command_queue is not None:
             self.command_queue = command_queue
+        last_sent = 0.0
 
         while True:
             cmd = await self.command_queue.get()
@@ -158,7 +160,12 @@ class HarmanKardon_Surround_Receiver:
                 self.writer.write(data)
                 await self.writer.drain()
             self.command_queue.task_done()
-            await asyncio.sleep(0.25)
+            # throttle commands based on how long since last command
+            since_last = now() - last_sent
+            if since_last > 5:
+                await asyncio.sleep(1.00)
+            else:
+                await asyncio.sleep(0.25)
 
         logger.info("finished")
         self.writer.close()
