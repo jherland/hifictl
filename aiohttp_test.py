@@ -44,8 +44,8 @@ async def forward_command(cmd):
 
 
 async def on_startup(app):
-    logger.info('starting up...')
     global hifictl
+    logger.info('starting up...')
     surround = HarmanKardon_Surround_Receiver('/dev/ttyUSB1')
     await surround.connect()
 

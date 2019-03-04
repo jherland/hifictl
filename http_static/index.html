@@ -85,7 +85,7 @@ function parse_audio_state(event) {
         var vol = state.volume + "dB\n";
         $('#audio_volume').text(vol);
     }
-    if (state.mute) {
+    if (state.muted) {
         $('#audio_volume').text("Muted");
     }
 }
