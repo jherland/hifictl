@@ -126,16 +126,24 @@ window.onload = connect_socket;
 
     <div class="ui-grid-b">
         <div class="ui-block-a">
-            <a id="audio_standby_button" onclick="send_cmd('audio on_off')"
+<!--            <a id="audio_standby_button" onclick="send_cmd('audio on_off')"
             data-role="button" data-theme="a">
                 <span class="large">&#9211;</span>
-            </a>
+            </a> -->
+            <span id="audio_powercontrols" data-role="controlgroup" data-type="horizontal">
+                <a onclick="send_cmd('audio on')" data-role="button" data-theme="a">
+                    Power On <!-- <span class="large">&#x23FD;</span> -->
+                </a>
+                <a onclick="send_cmd('audio off')" data-role="button" data-theme="a">
+                    Power Off <!-- <span class="large">&#x2B58;</span> -->
+                </a>
+            </span>
             <span id="audio_sourcecontrols" data-role="controlgroup" data-type="horizontal">
                 <a onclick="send_cmd('audio source vid1')" data-role="button">
-                    HDMI<!-- VID1/HTPC -->
+                    Source: HTPC <!-- VID1/HTPC -->
                 </a>
                 <a onclick="send_cmd('audio source vid2')" data-role="button">
-                    TV<!-- VID2/TV -->
+                    Source: TV <!-- VID2/TV -->
                 </a>
             </span>
             <span id="audio_surroundcontrols" data-role="controlgroup" data-type="horizontal">
@@ -143,13 +151,13 @@ window.onload = connect_socket;
                     5.1
                 </a> -->
                 <a onclick="send_cmd('audio surround dolby')" data-role="button">
-                    &#127902; - 5.1<!-- Dolby -->
+                    Dolby 5.1 <!-- &#127902; - 5.1 -->
                 </a>
                 <!-- <a onclick="send_cmd('audio surround dts')" data-role="button">
                     DTS
                 </a> -->
                 <a onclick="send_cmd('audio surround stereo')" data-role="button">
-                    &#128254; - 2.0<!-- Stereo -->
+                    Stereo 2.0 <!-- &#128254; - 2.0 -->
                 </a>
             </span>
             <span id="audio_digitalcontrols" data-role="controlgroup" data-type="horizontal">
@@ -167,20 +175,20 @@ window.onload = connect_socket;
         <div class="ui-block-c">
             <div id="audio_volumecontrols" data-role="controlgroup">
                 <a onclick="repeat_cmd('audio vol+', 5)" data-role="button">
-                    <span class="large">&#128266;</span>
+                    <span class="large">&#128266;</span> +5dB
                 </a>
                 <a onclick="send_cmd('audio vol+')" data-role="button">
-                    <span class="small">&#128266;</span>
+                    <span class="small">&#128266;</span> +1dB
                 </a>
                 <a onclick="send_cmd('audio mute')" data-theme="b" data-role="button">
                     <small>&#128263;</small>
                     <span id="audio_volume">⋯</span>
                 </a>
                 <a onclick="send_cmd('audio vol-')" data-role="button">
-                    <span class="small">&#128265;</span>
+                    <span class="small">&#128265;</span> -1dB
                 </a>
                 <a onclick="repeat_cmd('audio vol-', 5)" data-role="button">
-                    <span class="large">&#128265;</span>
+                    <span class="large">&#128265;</span> -5dB
                 </a>
             </div>
         </div>
