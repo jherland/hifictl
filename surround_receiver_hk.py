@@ -161,7 +161,9 @@ class HarmanKardon_Surround_Receiver:
                 await self.writer.drain()
             self.command_queue.task_done()
             # throttle commands based on how long since last command
-            since_last = now() - last_sent
+            t = now()
+            since_last = t - last_sent
+            last_sent = t
             if since_last > 5:
                 await asyncio.sleep(1.00)
             else:
