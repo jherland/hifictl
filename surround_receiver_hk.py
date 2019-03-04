@@ -167,7 +167,7 @@ class HarmanKardon_Surround_Receiver:
             if since_last > 5:
                 await asyncio.sleep(1.00)
             else:
-                await asyncio.sleep(0.25)
+                await asyncio.sleep(0.3)
 
         logger.info("finished")
         self.writer.close()
