@@ -79,26 +79,28 @@ class AVR_Command:
     def parse_dgram(cls, data):
         """Parse a datagram containing a command sent to the AVR.
 
-        The AVR receives 4-byte datagram over the serial port (not
-        including the protocol overhead managed by AVR_Connection)
-        containing remote control commands to be executed by the AVR.
-        The 4-byte remote control codes are listed in the above
-        dictionary.
+        The AVR receives 4-byte datagram over the serial port (not including
+        the protocol overhead managed by AVR_Connection) containing remote
+        control commands to be executed by the AVR. The 4-byte remote control
+        codes are listed in the above dictionary.
 
-        Return a 2-tuple containing 4-byte data value, and the
-        corresponding keyword from the above dictionary (or None).
-        Throw an exception if parsing failed.
+        Return the AVR_Command object for the keyword corresponding to the
+        given 4-byte data value, or raise a ValueError if no correpsponding
+        keyword is found.
+
+        Raise an exception if parsing fails for any other reason.
         """
-        assert isinstance(data, bytes)
-        assert len(data) == 4, "Unexpected length"
+        if not isinstance(data, bytes):
+            raise TypeError("data must be a bytes object")
+        if not len(data) == 4:
+            raise ValueError("Unexpected data length {}".format(len(data)))
 
         # Reverse-lookup the 4-byte data value in the command dict
         keyword = None
         for k, v in cls.Commands.items():
             if data == v:
-                keyword = k
-                break
-        return (data, keyword)
+                return cls(k)
+        raise ValueError(f"Unknown AVR Command {data!r}")
 
     @classmethod
     def from_dgram(cls, dgram):
