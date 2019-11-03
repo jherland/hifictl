@@ -85,8 +85,8 @@ def decode(dgram, dgram_spec):
         raise ValueError(f'Unexpected type ({dgram[6]} != {type})')
     if dgram[7] != length:
         raise ValueError(f'Unexpected data length ({dgram[7]} != {length})')
-    data = dgram[8 : 8 + length]
-    cksum = dgram[8 + length :]
+    data = dgram[8:8 + length]
+    cksum = dgram[8 + length:]
     if calc_cksum(data) != cksum:
         raise ValueError(f'Failed checksum ({calc_cksum(data)} != {cksum})')
     return data

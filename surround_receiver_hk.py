@@ -25,7 +25,7 @@ class HarmanKardon_Surround_Receiver:
     commands = {
         'on': 'POWER ON',
         'off': 'POWER OFF',
-        #'on_off': _toggle_standby,  # Toggle on/off
+        # 'on_off': _toggle_standby,  # Toggle on/off
         'mute': 'MUTE',
         'vol+': 'VOL UP',
         'vol-': 'VOL DOWN',
@@ -39,7 +39,7 @@ class HarmanKardon_Surround_Receiver:
         'dig+': 'DIGITAL UP',
         'dig-': 'DIGITAL DOWN',
         'dig?': 'DIGITAL',
-        #'update': lambda self: [],  # We only _emit_ this command
+        # 'update': lambda self: [],  # We only _emit_ this command
     }
 
     def __init__(self, serial_port, baudrate=38400, *args, **kwargs):
@@ -56,7 +56,8 @@ class HarmanKardon_Surround_Receiver:
             self.writer.close()
             await self.writer.wait_closed()
         args, kwargs = self.serial_args
-        self.reader, self.writer = await open_serial_connection(*args, **kwargs)
+        self.reader, self.writer = await open_serial_connection(
+            *args, **kwargs)
         self.logger.info('Connected via %s', self.writer.transport.serial.name)
 
     async def control(self, new_state):

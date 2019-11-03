@@ -72,7 +72,7 @@ async def websocket_handler(request):
     logger.info('websocket connection open')
 
     await ws.send_json(last_audio_state)
-    ws_connections.add(ws) # future updates are sent by audio_state_listener()
+    ws_connections.add(ws)  # future updates are sent by audio_state_listener()
 
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:

@@ -9,7 +9,6 @@ import argparse
 import asyncio
 import cli
 import serial_asyncio
-import sys
 
 
 async def send(messages, pipe):

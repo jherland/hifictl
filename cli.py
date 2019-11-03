@@ -6,7 +6,7 @@ from utils import lines_from, items_from
 
 import asyncio
 import logging
-import readline
+# import readline
 import sys
 
 

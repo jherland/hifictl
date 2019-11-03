@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import time
 from typing import FrozenSet, Optional
 
 import avr_status
