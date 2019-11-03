@@ -13,6 +13,7 @@ verify_ssl = true
 [packages]
 pyserial-asyncio = "*"
 aiohttp = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.7"
