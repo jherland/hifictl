@@ -11,9 +11,6 @@ from avr_status import AVR_Status
 from avr_state import AVR_State
 
 
-logger = logging.getLogger(__name__)
-
-
 class HarmanKardon_Surround_Receiver:
     """Async communication with a Harman/Kardon AVR 430 surround receiver.
 
@@ -26,28 +23,28 @@ class HarmanKardon_Surround_Receiver:
 
     # Map simple string commands to corresponding H/K serial commands
     commands = {
-        "on": avr_command.AVR_Command.Commands["POWER ON"],
-        "off": avr_command.AVR_Command.Commands["POWER OFF"],
-        #"on_off": _toggle_standby,  # Toggle on/off
-        "mute": avr_command.AVR_Command.Commands["MUTE"],
-        "vol+": avr_command.AVR_Command.Commands["VOL UP"],
-        "vol-": avr_command.AVR_Command.Commands["VOL DOWN"],
-        "vol?": avr_command.AVR_Command.Commands["VOL DOWN"],
-        "source vid1": avr_command.AVR_Command.Commands["VID1"],
-        "source vid2": avr_command.AVR_Command.Commands["VID2"],
-        "surround 6ch": avr_command.AVR_Command.Commands["6CH/8CH"],
-        "surround dolby": avr_command.AVR_Command.Commands["DOLBY"],
-        "surround dts": avr_command.AVR_Command.Commands["DTS"],
-        "surround stereo": avr_command.AVR_Command.Commands["STEREO"],
-        "dig+": avr_command.AVR_Command.Commands["DIGITAL UP"],
-        "dig-": avr_command.AVR_Command.Commands["DIGITAL DOWN"],
-        "dig?": avr_command.AVR_Command.Commands["DIGITAL"],
-        #"update": lambda self: [],  # We only _emit_ this command
+        'on': 'POWER ON',
+        'off': 'POWER OFF',
+        #'on_off': _toggle_standby,  # Toggle on/off
+        'mute': 'MUTE',
+        'vol+': 'VOL UP',
+        'vol-': 'VOL DOWN',
+        'vol?': 'VOL DOWN',  # Use vol- to _trigger_ volume display
+        'source vid1': 'VID1',
+        'source vid2': 'VID2',
+        'surround 6ch': '6CH/8CH',
+        'surround dolby': 'DOLBY',
+        'surround dts': 'DTS',
+        'surround stereo': 'STEREO',
+        'dig+': 'DIGITAL UP',
+        'dig-': 'DIGITAL DOWN',
+        'dig?': 'DIGITAL',
+        #'update': lambda self: [],  # We only _emit_ this command
     }
 
     def __init__(self, serial_port, baudrate=38400, *args, **kwargs):
-        self.logger = logger.getChild(self.__class__.__name__)
-        kwargs.update({"url": serial_port, "baudrate": baudrate})
+        self.logger = logging.getLogger(self.__class__.__name__)
+        kwargs.update({'url': serial_port, 'baudrate': baudrate})
         self.serial_args = (args, kwargs)
         self.reader = None
         self.writer = None
@@ -55,12 +52,12 @@ class HarmanKardon_Surround_Receiver:
         self.command_queue = asyncio.Queue()
 
     async def connect(self):
-        args, kwargs = self.serial_args
         if self.writer is not None:
             self.writer.close()
             await self.writer.wait_closed()
+        args, kwargs = self.serial_args
         self.reader, self.writer = await open_serial_connection(*args, **kwargs)
-        self.logger.info("Connected via %s", self.writer.transport.serial.name)
+        self.logger.info('Connected via %s', self.writer.transport.serial.name)
 
     async def control(self, new_state):
         prev = self.state
@@ -72,30 +69,30 @@ class HarmanKardon_Surround_Receiver:
             return  # Nothing to do
 
         if self.state.volume is None:
-            await self.command_queue.put("vol?")  # Trigger volume display
+            await self.command_queue.put('vol?')  # Trigger volume display
             await self.command_queue.join()
         # TODO: REMOVE? assert self.state.source is not None
         if self.state.digital is None:
-            await self.command_queue.put("dig?")  # Trigger digital display
+            await self.command_queue.put('dig?')  # Trigger digital display
             await self.command_queue.join()
         assert self.state.line1 is not None
         assert self.state.line2 is not None
 
         # Trigger wake from standby if we just went from OFF -> STANDBY
         if prev.off and self.state.standby:
-            await self.command_queue.put("on")
+            await self.command_queue.put('on')
             await self.command_queue.join()
 
         # My receiver has "episodes" where volume increases suddenly...
         if self.state.volume is None:
             pass
         elif self.state.volume > -15:
-            self.logger.error("*** PANIC: Volume runaway, shutting down!")
-            await self.command_queue.put("off")
+            self.logger.error('*** PANIC: Volume runaway, shutting down!')
+            await self.command_queue.put('off')
             await self.command_queue.join()
         elif self.state.volume > -20:
-            self.logger.warning("*** WARNING: Volume runaway? decreasing...")
-            await self.command_queue.put("vol-")
+            self.logger.warning('*** WARNING: Volume runaway? decreasing...')
+            await self.command_queue.put('vol-')
             await self.command_queue.join()
 
     async def recv(self, state_queue):
@@ -104,34 +101,37 @@ class HarmanKardon_Surround_Receiver:
         If EOF is received over the serial port, put None as a sentinel onto
         the 'state_queue' and exit immediately.
         """
-        logger = self.logger.getChild("recv")
+        logger = self.logger.getChild('recv')
         while True:
             try:
                 dgram = await asyncio.wait_for(
                     self.reader.read(avr_dgram.dgram_len(self.in_spec)), 10)
             except asyncio.TimeoutError:
-                logger.warning("Nothing incoming. Re-establishing connection.")
+                logger.warning('Nothing incoming. Re-establishing connection.')
+                # TODO: Pass status=None to self.state.update() to signal Off?
                 await self.connect()
                 continue
             except asyncio.IncompleteReadError as e:
-                logger.debug("incomplete read:")
+                logger.debug('incomplete read:')
                 dgram = e.partial
-            logger.debug(f"<<< {dgram!r}")
+            logger.debug(f'<<< {dgram!r}')
             try:
-                status = AVR_Status.parse(avr_dgram.parse(dgram, self.in_spec))
+                status = AVR_Status.parse(
+                    avr_dgram.decode(dgram, self.in_spec))
             except ValueError as e:
-                logger.warning(f"Discarding datagram: {e}")
+                logger.warning(f'Discarding datagram: {e}')
+                # TODO: Pass status=None to self.state.update() to signal Off?
             else:
-                logger.debug(f"received {status}")
+                logger.debug(f'received {status}')
                 new_state = self.state.update(status)
                 if new_state != self.state:
-                    logger.debug(f"state -> {new_state}")
+                    logger.debug(f'state -> {new_state}')
                     await state_queue.put(new_state)
                     await state_queue.join()
                     await self.control(new_state)
             if self.reader.at_eof():
                 await state_queue.put(None)  # EOF
-                logger.info("finished")
+                logger.info('finished')
                 break
 
     async def send(self, command_queue=None):
@@ -140,7 +140,7 @@ class HarmanKardon_Surround_Receiver:
         Use existing self.command_queue if none given, otherwise replace
         self.command_queue with the one given.
         """
-        logger = self.logger.getChild("send")
+        logger = self.logger.getChild('send')
         if command_queue is not None:
             self.command_queue = command_queue
         last_sent = 0.0
@@ -150,13 +150,15 @@ class HarmanKardon_Surround_Receiver:
             if cmd is None:  # shutdown
                 break
             try:
-                data = avr_dgram.build(self.commands[cmd], self.out_spec)
+                data = avr_dgram.encode(
+                    avr_command.encode(self.commands[cmd]),
+                    self.out_spec)
             except KeyError:
                 if cmd:
-                    logger.error(f"Unknown command {cmd!r}")
+                    logger.error(f'Unknown command {cmd!r}')
             else:
-                logger.info(f"sending {cmd!r}")
-                logger.debug(f">>> {data!r}")
+                logger.info(f'sending {cmd!r}')
+                logger.debug(f'>>> {data!r}')
                 self.writer.write(data)
                 await self.writer.drain()
             self.command_queue.task_done()
@@ -169,9 +171,10 @@ class HarmanKardon_Surround_Receiver:
             else:
                 await asyncio.sleep(0.3)
 
-        logger.info("finished")
+        logger.info('finished')
         self.writer.close()
         await self.writer.wait_closed()
+
 
 async def main(serial_port):
     from cli import cli
@@ -182,47 +185,43 @@ async def main(serial_port):
     commands = asyncio.Queue()
     states = asyncio.Queue()
 
-    print("Write surround receiver commands to stdin (Ctrl-D to stop).")
-    print("Available commands:")
+    print('Write surround receiver commands to stdin (Ctrl-D to stop).')
+    print('Available commands:')
     for cmd in surround.commands.keys():
-        print(f"    {cmd}")
+        print(f'    {cmd}')
     print()
 
     async def print_states(states):
         while True:
             s = await states.get()
             if s is None:  # shutdown
-                print("Bye!")
+                print('Bye!')
                 break
             print(s)
             states.task_done()
 
     await asyncio.gather(
-        cli("surround> ", commands),
+        cli('surround> ', commands),
         surround.send(commands),
         surround.recv(states),
         print_states(states),
     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
-        description=HarmanKardon_Surround_Receiver.__doc__
-    )
+        description=HarmanKardon_Surround_Receiver.__doc__)
     parser.add_argument(
-        "--device",
-        "-D",
-        default="/dev/ttyUSB1",
-        help="Serial port for surround receiver (default: /dev/ttyUSB1)",
-    )
+        '--device', '-D', default='/dev/ttyUSB1',
+        help='Serial port for surround receiver (default: /dev/ttyUSB1)')
     parser.add_argument(
-        "--verbose", "-v", action="count", default=0, help="Increase log level"
-    )
+        '--verbose', '-v', action='count', default=0,
+        help='Increase log level')
     parser.add_argument(
-        "--quiet", "-q", action="count", default=0, help="Decrease log level"
-    )
+        '--quiet', '-q', action='count', default=0,
+        help='Decrease log level')
     args = parser.parse_args()
 
     loglevel = logging.WARNING + 10 * (args.quiet - args.verbose)

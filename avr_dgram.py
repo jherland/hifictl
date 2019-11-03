@@ -1,10 +1,10 @@
 """Low-level datagram en/decoding for the Harman/Kardon AVR protocol."""
 
 # Datagram spec for AVR->PC status updated
-AVR_PC_Status = (b"MPSEND", 3, 48)
+AVR_PC_Status = (b'MPSEND', 3, 48)
 
 # Datagram spec for PC->AVR remote control commands
-PC_AVR_Command = (b"PCSEND", 2, 4)
+PC_AVR_Command = (b'PCSEND', 2, 4)
 
 
 def calc_cksum(data):
@@ -44,22 +44,21 @@ def initial_bytes(dgram_spec):
     return keyword + bytes([type, length])
 
 
-def parse(dgram, dgram_spec):
-    """Parse the given datagram according to the given spec and return its data.
+def decode(dgram, dgram_spec):
+    """Parse a datagram according to the given spec and return its data.
 
-    The datagram is parsed according to the given spec, which is a
-    (keyword, type, length) tuple specifying the expected datagram type and
-    length (not including the 10-byte protocol overhead).
+    The 'dgram_spec' is a (keyword, type, length) tuple specifying the expected
+    datagram type and length (not including the 10-byte protocol overhead).
 
     Usually, this class handles status updates from the AVR side, in which case
-    dgram_spec should be ("MPSEND", 3, 48). Otherwise, for parsing datagrams
+    dgram_spec should be AVR_PC_Status. Otherwise, for parsing datagrams
     containing remote control commands to the AVR, dgram_spec should be
-    ("PCSEND", 2, 4).
+    PC_AVR_Command.
 
     AVR datagrams are structured as follows:
      - 6 bytes:  Transmission keyword in ASCII (keyword)
-     - "MPSEND": AVR -> PC
-     - "PCSEND": PC -> AVR
+     - 'MPSEND': AVR -> PC
+     - 'PCSEND': PC -> AVR
      - 1 byte:   Data Type (type)
        - 0x01: DSP UPGRADE (PC -> AVR)
        - 0x02: PC Remote controller (PC -> AVR)
@@ -77,30 +76,30 @@ def parse(dgram, dgram_spec):
     full_length = dgram_len(dgram_spec)
 
     if not isinstance(dgram, bytes):
-        raise ValueError(f"Given datagram is not a bytes object ({dgram!r})")
+        raise ValueError(f'Given datagram is not a bytes object ({dgram!r})')
     if len(dgram) != full_length:
-        raise ValueError(f"Unexpected datagram length ({len(dgram)})")
+        raise ValueError(f'Unexpected datagram length ({len(dgram)})')
     if not dgram.startswith(keyword):
-        raise ValueError(f"Unexpected start keyword ({dgram[:len(keyword)]})")
+        raise ValueError(f'Unexpected start keyword ({dgram[:len(keyword)]})')
     if dgram[6] != type:
-        raise ValueError(f"Unexpected type ({dgram[6]} != {type})")
+        raise ValueError(f'Unexpected type ({dgram[6]} != {type})')
     if dgram[7] != length:
-        raise ValueError(f"Unexpected data length ({dgram[7]} != {length})")
+        raise ValueError(f'Unexpected data length ({dgram[7]} != {length})')
     data = dgram[8 : 8 + length]
     cksum = dgram[8 + length :]
     if calc_cksum(data) != cksum:
-        raise ValueError(f"Failed checksum ({calc_cksum(data)} != {cksum})")
+        raise ValueError(f'Failed checksum ({calc_cksum(data)} != {cksum})')
     return data
 
 
-def build(data, dgram_spec):
+def encode(data, dgram_spec):
     """Embed the given data in a datagram of the given dgram_spec.
 
     Return the full datagram, including protocol overhead.
     """
     keyword, type, length = dgram_spec
     if not isinstance(data, bytes):
-        raise ValueError(f"Given data is not a bytes object ({data!r})")
+        raise ValueError(f'Given data is not a bytes object ({data!r})')
     if len(data) != length:
-        raise ValueError(f"Incorrect data length ({len(data)} != {length})")
+        raise ValueError(f'Incorrect data length ({len(data)} != {length})')
     return keyword + bytes([type, length]) + data + calc_cksum(data)

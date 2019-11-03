@@ -24,46 +24,48 @@ class AVR_State:
     def __str__(self):
         props = []
         if self.off:
-            props.append("off")
+            props.append('off')
         elif self.standby:
-            props.append("standby")
+            props.append('standby')
         else:
             if self.muted:
-                props.append("muted")
+                props.append('muted')
             if self.volume is not None:
-                props.append(f"{self.volume}dB")
+                props.append(f'{self.volume}dB')
             else:
-                props.append("???dB")
-            props.append("{}/{}/{}/{} -> {}".format(
+                props.append('???dB')
+            props.append('{}/{}/{}/{} -> {}'.format(
                 self.source,
                 self.digital,
                 avr_status.channels_string(self.channels),
                 avr_status.surround_string(self.surround),
                 avr_status.speakers_string(self.speakers),
             ))
-            props.append(f"'{self.line1}'")
-            props.append(f"'{self.line2}'")
-        return "<AVR_State " + " ".join(props) + ">"
+            props.append(f'"{self.line1}"')
+            props.append(f'"{self.line2}"')
+        return '<AVR_State ' + ' '.join(props) + '>'
 
     def json(self):
         """Return current state as JSON."""
         return {
-            "off": self.off,
-            "standby": self.standby,
-            "muted": self.muted,
-            "volume": self.volume,
-            "source": self.source,
-            "digital": self.digital,
-            "surround": list(self.surround),
-            "surround_string": avr_status.surround_string(self.surround),
-            "surround_string_short": avr_status.surround_string_short(self.surround),
-            "channels": list(self.channels),
-            "channels_string": avr_status.channels_string(self.channels),
-            "speakers": list(self.speakers),
-            "speakers_string": avr_status.speakers_string(self.speakers),
-            "speakers_string_short": avr_status.speakers_string_short(self.speakers),
-            "line1": self.line1,
-            "line2": self.line2,
+            'off': self.off,
+            'standby': self.standby,
+            'muted': self.muted,
+            'volume': self.volume,
+            'source': self.source,
+            'digital': self.digital,
+            'surround': list(self.surround),
+            'surround_string': avr_status.surround_string(self.surround),
+            'surround_string_short':
+                avr_status.surround_string_short(self.surround),
+            'channels': list(self.channels),
+            'channels_string': avr_status.channels_string(self.channels),
+            'speakers': list(self.speakers),
+            'speakers_string': avr_status.speakers_string(self.speakers),
+            'speakers_string_short':
+                avr_status.speakers_string_short(self.speakers),
+            'line1': self.line1,
+            'line2': self.line2,
         }
 
     def update(self, status):
@@ -74,29 +76,29 @@ class AVR_State:
         d = self.__dict__.copy()
 
         if status is None:
-            d["off"] = True
-        d["off"] = False
+            d['off'] = True
+        d['off'] = False
 
-        d["standby"] = status.standby
-        d["muted"] = status.muted
+        d['standby'] = status.standby
+        d['muted'] = status.muted
 
         if status.volume is not None:
-            d["volume"] = status.volume
+            d['volume'] = status.volume
         if status.source is not None:
-            d["source"] = status.source
+            d['source'] = status.source
         if status.digital is not None:
-            d["digital"] = status.digital
+            d['digital'] = status.digital
 
         if status.channels:
-            d["channels"] = status.channels
+            d['channels'] = status.channels
         if status.surround:
-            d["surround"] = status.surround
+            d['surround'] = status.surround
         if status.speakers:
-            d["speakers"] = status.speakers
+            d['speakers'] = status.speakers
 
         if status.line1.strip() or not status.muted:
-            d["line1"] = status.line1
+            d['line1'] = status.line1
         if status.line2.strip():
-            d["line2"] = status.line2
+            d['line2'] = status.line2
 
         return self.__class__(**d)

@@ -2,75 +2,75 @@ from dataclasses import dataclass
 
 
 def decode_avr_text(text):
-    return text.decode("ascii").replace("`", "\u2161")
+    return text.decode('ascii').replace('`', '\u2161')
 
 
 def encode_avr_text(text):
-    return text.replace("\u2161", "`").encode("ascii")
+    return text.replace('\u2161', '`').encode('ascii')
 
 
 def surround_string(surround_set):
-    """Return a string listing the given surround modes, separated by "+"."""
-    return "+".join(sorted(surround_set))
+    """Return a string listing the given surround modes, separated by '+'."""
+    return '+'.join(sorted(surround_set))
 
 
 def surround_string_short(surround_set, limit=3):
     """Return a short string representing the given set of surround modes.
 
     Abbreviate each active surround mode in the given set to 2-4 char names,
-    and return these separated by "+". If more than limit are active, return
-    "***" instead.
+    and return these separated by '+'. If more than limit are active, return
+    '***' instead.
     """
     if len(surround_set) > limit:
-        return "***"
+        return '***'
 
     d = {  # Map long to short surround names.
-        "DOLBY DIGITAL EX": "DDEX",
-        "DOLBY DIGITAL": "DD",
-        "DOLBY PRO LOGIC II": "DPL2",
-        "DOLBY PRO LOGIC": "DPL",
-        "DOLBY 3 STEREO": "D3S",
-        "STEREO": "ST",
-        "DOLBY HEADPHONE": "DH",
-        "DOLBY VIRTUAL": "DV",
-        "DTS ES": "DTES",
-        "DTS": "DTS",
-        "LOGIC 7": "L7",
-        "VMAX": "VMAX",
-        "DSP": "DSP",
-        "7CH.STEREO": "7CHS",
-        "5CH.STEREO": "5CHS",
-        "SURR.OFF": "SROF",
+        'DOLBY DIGITAL EX': 'DDEX',
+        'DOLBY DIGITAL': 'DD',
+        'DOLBY PRO LOGIC II': 'DPL2',
+        'DOLBY PRO LOGIC': 'DPL',
+        'DOLBY 3 STEREO': 'D3S',
+        'STEREO': 'ST',
+        'DOLBY HEADPHONE': 'DH',
+        'DOLBY VIRTUAL': 'DV',
+        'DTS ES': 'DTES',
+        'DTS': 'DTS',
+        'LOGIC 7': 'L7',
+        'VMAX': 'VMAX',
+        'DSP': 'DSP',
+        '7CH.STEREO': '7CHS',
+        '5CH.STEREO': '5CHS',
+        'SURR.OFF': 'SROF',
     }
-    return "+".join(sorted([d[s] for s in surround_set]))
+    return '+'.join(sorted([d[s] for s in surround_set]))
 
 
 def channels_string(channels_set):
     """Return a string of the form X.Y from a set of input channels.
 
     Convert a set of input channels (as returned by .channels()) into a string
-    like "2.0", "5.1" or "7.1".
+    like '2.0', '5.1' or '7.1'.
     """
-    lfe = 1 if "LFE" in channels_set else 0
-    return "{}.{}".format(len(channels_set) - lfe, lfe)
+    lfe = 1 if 'LFE' in channels_set else 0
+    return f'{len(channels_set) - lfe}.{lfe}'
 
 
 def speakers_string(speakers_set):
     """Return a string describing the speakers in the given set."""
     sets = [
-        speakers_set & set(("L", "R", "l", "r")),
-        speakers_set & set(("C", "c")),
-        speakers_set & set(("LFE",)),
-        speakers_set & set(("SL", "SR", "sl", "sr")),
-        speakers_set & set(("SBL", "SBR", "sbl", "sbr")),
+        speakers_set & set(('L', 'R', 'l', 'r')),
+        speakers_set & set(('C', 'c')),
+        speakers_set & set(('LFE',)),
+        speakers_set & set(('SL', 'SR', 'sl', 'sr')),
+        speakers_set & set(('SBL', 'SBR', 'sbl', 'sbr')),
     ]
-    return "/".join(["+".join(sorted(s)) for s in sets if s])
+    return '/'.join(['+'.join(sorted(s)) for s in sets if s])
 
 
 def speakers_string_short(speakers_set):
-    """Return a short string of the form X.Y with the #speakers."""
-    lfe = 1 if "LFE" in speakers_set else 0
-    return "{}.{}".format(len(speakers_set) - lfe, lfe)
+    """Return a short string of the form X.Y with the number of speakers."""
+    lfe = 1 if 'LFE' in speakers_set else 0
+    return f'{len(speakers_set) - lfe}.{lfe}'
 
 
 @dataclass(frozen=True)
@@ -91,11 +91,11 @@ class AVR_Status:
         and is structured as follows:
          - 16 bytes: VFD first line of characters:
             - 1 byte:   0xf0
-            - 14 bytes: ASCII data (e.g. "DVD           ")
+            - 14 bytes: ASCII data (e.g. 'DVD           ')
             - 1 byte:   0x00
          - 16 bytes: VFD second line of characters:
             - 1 byte:   0xf1
-            - 14 bytes: ASCII data (e.g. "DOLBY DIGITAL ")
+            - 14 bytes: ASCII data (e.g. 'DOLBY DIGITAL ')
             - 1 byte:   0x00
          - 16 bytes: VFD icons encoded as a series of bit flags:
             - 1 byte:   0xf2
@@ -106,7 +106,7 @@ class AVR_Status:
         fields of the status report, or throw ValueError if parsing failed.
         """
         if len(data) != 48:
-            raise ValueError(f"Unexpected length ({len(data)})")
+            raise ValueError(f'Unexpected length ({len(data)})')
         if not (
             data[0] == 0xF0
             and data[15] == 0x00
@@ -115,7 +115,7 @@ class AVR_Status:
             and data[32] == 0xF2
             and data[47] == 0x00
         ):
-            raise ValueError(f"Malformed data ({data!r})")
+            raise ValueError(f'Malformed data ({data!r})')
         return cls(
             decode_avr_text(data[1:15]),
             decode_avr_text(data[17:31]),
@@ -123,7 +123,7 @@ class AVR_Status:
         )
 
     def __str__(self):
-        return "<AVR_Status: '%s' '%s' %s/%s/%s -> %s>" % (
+        return '<AVR_Status: "{}" "{}" {}/{}/{} -> {}>'.format(
             self.line1,
             self.line2,
             self.source,
@@ -161,22 +161,22 @@ class AVR_Status:
     @property
     def muted(self):
         """Return whether AVR is in mute mode."""
-        # when muted, the VFD flashes "MUTE" at 1 Hz
-        return self.line1.strip() in {"MUTE", ""} and self.line2.strip() == ""
+        # when muted, the VFD flashes 'MUTE' at 1 Hz
+        return self.line1.strip() in {'MUTE', ''} and self.line2.strip() == ''
 
     @property
     def volume(self):
-        """Return current volume."""
+        """Return current volume, or None if not currently visible."""
         line = self.line2.strip()
-        if line.startswith("VOL ") and line.endswith("dB"):
+        if line.startswith('VOL ') and line.endswith('dB'):
             return int(line[4:7])
         return None
 
     @property
     def digital(self):
-        """Return digital input gate."""
+        """Return digital input gate, or None if not currently visible"""
         try:
-            _, dig_str = self.line1.split("/")
+            _, dig_str = self.line1.split('/')
         except ValueError:
             return None
         if dig_str.strip():
@@ -190,17 +190,17 @@ class AVR_Status:
         Returns the set of surround/processing modes enabled in this
         AVR status. The set contains zero of more of the following
         items:
-         - "DOLBY DIGITAL" or "DOLBY DIGITAL EX"
-         - "DOLBY PRO LOGIC" or "DOLBY PRO LOGIC II"
-         - "DOLBY 3 STEREO"
-         - "DOLBY HEADPHONE"
-         - "DOLBY VIRTUAL"
-         - "DTS" or "DTS ES"
-         - "LOGIC 7"
-         - "VMAX"
-         - "DSP"
-         - "5CH.STEREO" or "7CH.STEREO"
-         - "SURR.OFF"
+         - 'DOLBY DIGITAL' or 'DOLBY DIGITAL EX'
+         - 'DOLBY PRO LOGIC' or 'DOLBY PRO LOGIC II'
+         - 'DOLBY 3 STEREO'
+         - 'DOLBY HEADPHONE'
+         - 'DOLBY VIRTUAL'
+         - 'DTS' or 'DTS ES'
+         - 'LOGIC 7'
+         - 'VMAX'
+         - 'DSP'
+         - '5CH.STEREO' or '7CH.STEREO'
+         - 'SURR.OFF'
         """
         # The following lists the reverse-engineered interpretation of
         # icons[0:4] and how they correspond to the surround mode icons
@@ -259,37 +259,37 @@ class AVR_Status:
         buf = self.icons[0:4]
         ret = set()
         if buf[0] & 0x20:
-            ret.add("DOLBY DIGITAL EX")
+            ret.add('DOLBY DIGITAL EX')
         elif buf[0] & 0x40:
-            ret.add("DOLBY DIGITAL")
+            ret.add('DOLBY DIGITAL')
         if buf[0] & 0x04:
-            ret.add("DOLBY PRO LOGIC II")
+            ret.add('DOLBY PRO LOGIC II')
         elif buf[0] & 0x08:
-            ret.add("DOLBY PRO LOGIC")
+            ret.add('DOLBY PRO LOGIC')
         if buf[0] & 0x01:
-            ret.add("DOLBY 3 STEREO")
+            ret.add('DOLBY 3 STEREO')
         if buf[1] & 0x40:
-            ret.add("STEREO")
+            ret.add('STEREO')
         if buf[1] & 0x10:
-            ret.add("DOLBY HEADPHONE")
+            ret.add('DOLBY HEADPHONE')
         if buf[1] & 0x04:
-            ret.add("DOLBY VIRTUAL")
+            ret.add('DOLBY VIRTUAL')
         if buf[2] & 0x20:
-            ret.add("DTS ES")
+            ret.add('DTS ES')
         elif buf[2] & 0x40:
-            ret.add("DTS")
+            ret.add('DTS')
         if buf[2] & 0x08:
-            ret.add("LOGIC 7")
+            ret.add('LOGIC 7')
         if buf[2] & 0x02:
-            ret.add("VMAX")
+            ret.add('VMAX')
         if buf[3] & 0x80:
-            ret.add("DSP")
+            ret.add('DSP')
         if buf[3] & 0x10:
-            ret.add("7CH.STEREO")
+            ret.add('7CH.STEREO')
         elif buf[3] & 0x20:
-            ret.add("5CH.STEREO")
+            ret.add('5CH.STEREO')
         if buf[3] & 0x02:
-            ret.add("SURR.OFF")
+            ret.add('SURR.OFF')
         return ret
 
     # The following lists the reverse-engineered interpretation of icons[4:8]
@@ -334,14 +334,14 @@ class AVR_Status:
 
         Returns the set of channels present in the input signal. The
         set contains zero of more of the following elements:
-         - "L"   - left channel
-         - "C"   - center channel
-         - "R"   - right channel
-         - "LFE" - low frequency effects (subwoofer)
-         - "SL"  - surround left
-         - "SR"  - surround right
-         - "SBL" - surround back left
-         - "SBR" - surround back right
+         - 'L'   - left channel
+         - 'C'   - center channel
+         - 'R'   - right channel
+         - 'LFE' - low frequency effects (subwoofer)
+         - 'SL'  - surround left
+         - 'SR'  - surround right
+         - 'SBL' - surround back left
+         - 'SBR' - surround back right
 
         Typical return values:
          - A stereo input signal will yield a set containing L and R
@@ -351,21 +351,21 @@ class AVR_Status:
         buf = self.icons[4:8]
         ret = set()
         if buf[0] & 0x20:
-            ret.add("L")  # left
+            ret.add('L')  # left
         if buf[0] & 0x02:
-            ret.add("C")  # center
+            ret.add('C')  # center
         if buf[1] & 0x20:
-            ret.add("R")  # right
+            ret.add('R')  # right
         if buf[1] & 0x04:
-            ret.add("LFE")  # low freq. effects/sub-woofer
+            ret.add('LFE')  # low frequency effects (aka. sub-woofer)
         if buf[2] & 0x80:
-            ret.add("SL")  # surround left
+            ret.add('SL')  # surround left
         if buf[2] & 0x04:
-            ret.add("SR")  # surround right
+            ret.add('SR')  # surround right
         if buf[3] & 0x40:
-            ret.add("SBL")  # surround back left
+            ret.add('SBL')  # surround back left
         if buf[3] & 0x02:
-            ret.add("SBR")  # surround back right
+            ret.add('SBR')  # surround back right
         return ret
 
     @property
@@ -375,14 +375,14 @@ class AVR_Status:
         Returns a set listing the speakers that the AVR is currently
         using, as encoded in this AVR status message. The possible set
         members are:
-         - "L" or "l":     A "large" or "small" left speaker
-         - "C" or "c":     A "large" or "small" center speaker
-         - "R" or "r":     A "large" or "small" right speaker
-         - "LFE":          A sub-woofer
-         - "SL" or "sl":   A "large" or "small" surround left speaker
-         - "SR" or "sr":   A "large" or "small" surround right speaker
-         - "SBL" or "sbl": A "large" or "small" surr. back left speaker
-         - "SBR" or "sbr": A "large" or "small" surr. back right speaker
+         - 'L' or 'l':     A 'large' or 'small' left speaker
+         - 'C' or 'c':     A 'large' or 'small' center speaker
+         - 'R' or 'r':     A 'large' or 'small' right speaker
+         - 'LFE':          A sub-woofer
+         - 'SL' or 'sl':   A 'large' or 'small' surround left speaker
+         - 'SR' or 'sr':   A 'large' or 'small' surround right speaker
+         - 'SBL' or 'sbl': A 'large' or 'small' surr. back left speaker
+         - 'SBR' or 'sbr': A 'large' or 'small' surr. back right speaker
 
         Note that the returned set is not necessarily equivalent to the
         speakers currently physically connected to the AVR. For example,
@@ -390,41 +390,41 @@ class AVR_Status:
         manipulate the AVR into believing that there are 7.1 speakers
         (i.e. configuring the SBL/SBR speakers without actually
         connecting any). Conversely, when playing 2.0 material in
-        "SURROUND OFF" mode, the set will not contain the surround
+        'SURROUND OFF' mode, the set will not contain the surround
         speakers, although they are still physically connected.
         """
         buf = self.icons[4:8]
         ret = set()
         if buf[0] & 0x80:
-            ret.add("L")
+            ret.add('L')
         elif buf[0] & 0x40:
-            ret.add("l")
+            ret.add('l')
         if buf[0] & 0x08:
-            ret.add("C")
+            ret.add('C')
         elif buf[0] & 0x04:
-            ret.add("c")
+            ret.add('c')
         if buf[1] & 0x80:
-            ret.add("R")
+            ret.add('R')
         elif buf[1] & 0x40:
-            ret.add("r")
+            ret.add('r')
         if buf[1] & 0x08:
-            ret.add("LFE")
+            ret.add('LFE')
         if buf[1] & 0x02:
-            ret.add("SL")
+            ret.add('SL')
         elif buf[1] & 0x01:
-            ret.add("sl")
+            ret.add('sl')
         if buf[2] & 0x10:
-            ret.add("SR")
+            ret.add('SR')
         elif buf[2] & 0x08:
-            ret.add("sr")
+            ret.add('sr')
         if buf[3] & 0x20:
-            ret.add("SBL")
+            ret.add('SBL')
         elif buf[3] & 0x80:
-            ret.add("sbl")
+            ret.add('sbl')
         if buf[3] & 0x01:
-            ret.add("SBR")
+            ret.add('SBR')
         elif buf[3] & 0x04:
-            ret.add("sbr")
+            ret.add('sbr')
         return ret
 
     @property
@@ -447,8 +447,7 @@ class AVR_Status:
         Only one of these is active at any time, except when the AVR is
         off/standby, or while booting, in which case None is returned
         """
-        # The following lists the reverse-engineered interpretation of
-        # icons[8:12] and how they correspond to the source icons
+        # The following maps icons[8:12] to the corresponding source icon
         # on the AVR front display:
         #  DVD:  icons[8:12] == 30 00 00 00
         #  CD:   icons[8:12] == 00 c0 00 00
@@ -464,27 +463,27 @@ class AVR_Status:
         buf = self.icons[8:12]
         ret = set()
         if buf[0] & 0x30:
-            ret.add("DVD")
+            ret.add('DVD')
         if buf[1] & 0xC0:
-            ret.add("CD")
+            ret.add('CD')
         if buf[2] & 0x60:
-            ret.add("TAPE")
+            ret.add('TAPE')
         if buf[2] & 0x06:
-            ret.add("6CH")
+            ret.add('6CH')
         if buf[3] & 0x60:
-            ret.add("8CH")
+            ret.add('8CH')
         if buf[0] & 0xC0:
-            ret.add("VID1")
+            ret.add('VID1')
         if buf[0] & 0x03:
-            ret.add("VID2")
+            ret.add('VID2')
         if buf[1] & 0x30:
-            ret.add("VID3")
+            ret.add('VID3')
         if buf[1] & 0x01 and buf[2] & 0x80:
-            ret.add("VID4")
+            ret.add('VID4')
         if buf[1] & 0x04:
-            ret.add("FM")  # 0x0c (shares 0x80 with "AM")
+            ret.add('FM')  # 0x0c (shares 0x08 with 'AM')
         if buf[1] & 0x02:
-            ret.add("AM")  # 0x0a (shares 0x80 with "FM")
+            ret.add('AM')  # 0x0a (shares 0x08 with 'FM')
         if len(ret) == 1:
             return ret.pop()
         else:

@@ -25,9 +25,12 @@ logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def virtual_serial_port(path1, path2):
+def virtual_serial_port(path1, path2, debug=False):
+    argv = [SOCAT, '-d']
+    if debug:
+        argv.extend(['-d', '-x'])
     address = 'pty,rawer,link={}'
-    argv = [SOCAT, '-d', '-x', address.format(path1), address.format(path2)]
+    argv.extend([address.format(path1), address.format(path2)])
     logger.debug(f'Starting {argv}...')
     proc = subprocess.Popen(argv)
     try:
@@ -64,7 +67,8 @@ def main():
     try:
         logger.info(
             f'Creating virtual serial ports at {args.path1} and {args.path2}')
-        with virtual_serial_port(args.path1, args.path2):
+        debug = args.verbose > 0
+        with virtual_serial_port(args.path1, args.path2, debug=debug):
             logger.info(f'Press Ctrl+C to quit')
             while True:
                 time.sleep(3600)

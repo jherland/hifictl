@@ -4,8 +4,8 @@ import sys
 import time
 
 from av_serial_device import AV_SerialDevice
-from avr_command import AVR_Command
-from avr_dgram import AVR_Datagram
+import avr_command
+import avr_dgram
 from avr_status import AVR_Status
 from avr_state import AVR_State
 
@@ -118,16 +118,16 @@ class AVR_Device(AV_SerialDevice):
                 # Shorten existing timer or setup new timer
                 self._setup_write_timer(deadline)
 
-    def handle_read(self, dgram_spec=AVR_Datagram.AVR_PC_Status):
+    def handle_read(self, dgram_spec=avr_dgram.AVR_PC_Status):
         """Attempt to read a datagram from the serial port.
 
-        Look for a bytes matching AVR_Datagram.expect_dgram_start(),
+        Look for a bytes matching avr_dgram.intial_bytes(),
         and read additional bytes until we have a byte sequence of
-        total length == AVR_Datagram.full_dgram_len().
+        total length == avr_dgram.dgram_len().
         """
-        d_start = AVR_Datagram.expect_dgram_start(dgram_spec)
+        d_start = avr_dgram.initial_bytes(dgram_spec)
         assert isinstance(d_start, bytes)
-        d_len = AVR_Datagram.full_dgram_len(dgram_spec)
+        d_len = avr_dgram.dgram_len(dgram_spec)
         assert len(d_start) < d_len
 
         assert len(self.readbuf) < d_len
@@ -160,7 +160,7 @@ class AVR_Device(AV_SerialDevice):
         # self.human_readable(self.readbuf)))
         dgram, self.readbuf = self.readbuf[:d_len], self.readbuf[d_len:]
         assert isinstance(dgram, bytes)
-        data = AVR_Datagram.parse_dgram(dgram, dgram_spec)
+        data = avr_dgram.decode(dgram, dgram_spec)
         status = AVR_Status.from_dgram(data)
         if self.state.update(status):
             self.debug("%s\n\t\t-> %s" % (status, self.state))
@@ -189,9 +189,9 @@ class AVR_Device(AV_SerialDevice):
         command = self.Commands[cmd]
         assert callable(command)
         for command_str in command(self):
-            avr_cmd = AVR_Command(command_str)
-            dgram_spec = AVR_Datagram.PC_AVR_Command
-            dgram = AVR_Datagram.build_dgram(avr_cmd.dgram(), dgram_spec)
+            dgram = avr_dgram.encode(
+                avr_command.encode(command_str),
+                avr_dgram.PC_AVR_Command)
             self.schedule_write(dgram)
 
 
