@@ -9,9 +9,6 @@ import avr_dgram
 from avr_status import AVR_Status
 
 
-logger = logging.getLogger(__name__)
-
-
 class Fake_HK_AVR:
     """Impersonate a Harman/Kardon AVR 430 surround receiver's serial port.
 
@@ -37,22 +34,21 @@ class Fake_HK_AVR:
     @classmethod
     async def create(cls, url, baudrate=38400, *args, **kwargs):
         reader, writer = await serial_asyncio.open_serial_connection(
-            url=url, baudrate=baudrate, *args, **kwargs
-        )
+            url=url, baudrate=baudrate, *args, **kwargs)
         return cls(reader, writer)
 
-    def __init__(self, incoming, outgoing):
-        self.incoming = incoming
-        self.outgoing = outgoing
-        self.pending = asyncio.Queue(maxsize=1)  # Command in-progress
+    def __init__(self, rstream, wstream):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.rstream = rstream
+        self.wstream = wstream
         self.state = 'standby'
         self.volume = -35  # dB
         self.volume_canceler = None
 
     def __str__(self):
-        return f'{self.description} on {self.outgoing.transport.serial.name}'
+        return f'{self.description} on {self.wstream.transport.serial.name}'
 
-    def status(self):
+    def _status(self):
         '''Return current status.'''
         line1, line2, icons = self.status_map[self.state]
         return AVR_Status(
@@ -60,31 +56,35 @@ class Fake_HK_AVR:
             line2.format(volume=self.volume),
             icons)
 
-    async def write_status(self):
+    async def _write_status(self):
         while True:
-            dgram = avr_dgram.encode(self.status().data, self.out_spec)
-            self.outgoing.write(dgram)
-            await self.outgoing.drain()
+            dgram = avr_dgram.encode(self._status().data, self.out_spec)
+            self.logger.debug(f'Writing {dgram}')
+            self.wstream.write(dgram)
+            await self.wstream.drain()
             await asyncio.sleep(0.2)
 
-    async def read_commands(self):
+    async def _read_commands(self):
         read_len = avr_dgram.dgram_len(self.in_spec)
         while True:
             try:
-                dgram = await self.incoming.readexactly(read_len)
+                dgram = await self.rstream.readexactly(read_len)
             except asyncio.IncompleteReadError:
-                logger.warning('Incomplete read!')
+                self.logger.warning('Incomplete read!')
                 break
+            self.logger.debug(f'Read {dgram}')
             cmd = avr_command.decode(avr_dgram.decode(dgram, self.in_spec))
-            self.handle_command(cmd)
+            # TODO??? await asyncio.sleep(0.2)
+            self._handle_command(cmd)
 
-    def handle_command(self, cmd):
+    def _handle_command(self, cmd):
         if self.state == 'standby':
             if cmd == 'POWER ON':
                 self.state = 'default'
                 self.volume = -35  # dB
             else:
-                logger.warning(f'Cannot handle {cmd} in state {self.state}')
+                self.logger.warning(
+                    f'Cannot handle {cmd} in state {self.state}')
                 return
         else:
             if cmd == 'POWER OFF':
@@ -104,21 +104,23 @@ class Fake_HK_AVR:
                 self.volume_canceler = asyncio.get_event_loop().call_later(
                     3, return_to_default)
             else:
-                logger.warning(f'Cannot handle {cmd} in state {self.state}')
+                self.logger.warning(
+                    f'Cannot handle {cmd} in state {self.state}')
                 return
-        logger.info(f'Handled {cmd}, state is now {self.state}')
+        self.logger.info(f'Handled {cmd}, state is now {self.state}')
 
     async def run(self):
+        self.logger.debug(f'Running {self}...')
         await asyncio.gather(
-            self.write_status(),
-            self.read_commands(),
+            self._write_status(),
+            self._read_commands(),
         )
 
 
 async def main(serial_port):
     hk = await Fake_HK_AVR.create(serial_port)
-    logger.info(f'Starting {hk}...')
-    logger.info('Press Ctrl+C to abort')
+    print(f'Starting {hk}...')
+    print('Press Ctrl+C to abort')
     await hk.run()
 
 
