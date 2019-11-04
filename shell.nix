@@ -12,6 +12,7 @@ stdenv.mkDerivation {
 
     # System requirements.
     socat
+    net_snmp
     readline
   ];
   src = null;
