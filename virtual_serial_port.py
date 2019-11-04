@@ -24,6 +24,11 @@ SOCAT = 'socat'
 logger = logging.getLogger(__name__)
 
 
+def wait_for_file(path):
+    while not path.exists():
+        time.sleep(0.1)
+
+
 @contextmanager
 def virtual_serial_port(path1, path2, debug=False):
     argv = [SOCAT, '-d']
@@ -33,6 +38,8 @@ def virtual_serial_port(path1, path2, debug=False):
     argv.extend([address.format(path1), address.format(path2)])
     logger.debug(f'Starting {argv}...')
     proc = subprocess.Popen(argv)
+    wait_for_file(path1)
+    wait_for_file(path2)
     try:
         yield
     finally:
