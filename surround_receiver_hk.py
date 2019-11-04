@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from serial_asyncio import open_serial_connection
+import serial_asyncio
 from time import monotonic as now
 
 import avr_command
@@ -42,25 +42,78 @@ class HarmanKardon_Surround_Receiver:
         # 'update': lambda self: [],  # We only _emit_ this command
     }
 
-    def __init__(self, serial_port, baudrate=38400, *args, **kwargs):
+    @classmethod
+    async def create(cls, url, baudrate=38400, *args, **kwargs):
+        # The instance must be able to reconnect to the same serial port after
+        # losing the connection (which happens when the surround receiver loses
+        # power). Therefore, we cannot simply open the connection here and pass
+        # the read + write streams onto .__init__(), as the instance would not
+        # know how to _reopen_ the connection later. Instead, pass function to
+        # open the serial connection to .__init__() and then call ._connect().
+        async def open_serial_port():
+            return await serial_asyncio.open_serial_connection(
+                url=url, baudrate=baudrate, *args, **kwargs)
+
+        obj = cls(open_serial_port)
+        await obj._connect()
+        return obj
+
+    def __init__(self, connector):
         self.logger = logging.getLogger(self.__class__.__name__)
-        kwargs.update({'url': serial_port, 'baudrate': baudrate})
-        self.serial_args = (args, kwargs)
-        self.reader = None
-        self.writer = None
+        self.connector = connector
+        self.rstream = None
+        self.wstream = None
         self.state = AVR_State()
-        self.command_queue = asyncio.Queue()
+        self.command_queue = None
 
-    async def connect(self):
-        if self.writer is not None:
-            self.writer.close()
-            await self.writer.wait_closed()
-        args, kwargs = self.serial_args
-        self.reader, self.writer = await open_serial_connection(
-            *args, **kwargs)
-        self.logger.info('Connected via %s', self.writer.transport.serial.name)
+    async def _connect(self):
+        if self.wstream is not None:
+            self.wstream.close()
+            await self.wstream.wait_closed()
+        self.rstream, self.wstream = await self.connector()
+        self.logger.info(f'Connected via {self.wstream.transport.serial.name}')
 
-    async def control(self, new_state):
+    async def _recv(self, state_queue):
+        """Read state updates from surround receiver and put onto state_queue.
+
+        If EOF is received over the serial port, put None as a sentinel onto
+        the 'state_queue' and exit immediately.
+        """
+        logger = self.logger.getChild('recv')
+        while True:
+            try:
+                dgram = await asyncio.wait_for(
+                    self.rstream.read(avr_dgram.dgram_len(self.in_spec)), 10)
+            except asyncio.TimeoutError:
+                logger.warning('Nothing incoming. Re-establishing connection.')
+                # TODO: Pass status=None to self.state.update() to signal Off?
+                await self._connect()
+                continue
+            except asyncio.IncompleteReadError as e:
+                logger.debug('incomplete read:')
+                dgram = e.partial
+            logger.debug(f'<<< {dgram!r}')
+            try:
+                status = AVR_Status.parse(
+                    avr_dgram.decode(dgram, self.in_spec))
+            except ValueError as e:
+                logger.warning(f'Discarding datagram: {e}')
+                # TODO: Pass status=None to self.state.update() to signal Off?
+            else:
+                logger.debug(f'received {status}')
+                new_state = self.state.update(status)
+                if new_state != self.state:
+                    logger.debug(f'state -> {new_state}')
+                    await state_queue.put(new_state)
+                    await state_queue.join()
+                    await self._control(new_state)
+            if self.rstream.at_eof():
+                await state_queue.put(None)  # EOF
+                logger.info('finished')
+                break
+
+    async def _control(self, new_state):
+        assert self.command_queue is not None
         prev = self.state
         self.state = new_state
 
@@ -96,54 +149,10 @@ class HarmanKardon_Surround_Receiver:
             await self.command_queue.put('vol-')
             await self.command_queue.join()
 
-    async def recv(self, state_queue):
-        """Read state updates from surround receiver and put onto state_queue.
-
-        If EOF is received over the serial port, put None as a sentinel onto
-        the 'state_queue' and exit immediately.
-        """
-        logger = self.logger.getChild('recv')
-        while True:
-            try:
-                dgram = await asyncio.wait_for(
-                    self.reader.read(avr_dgram.dgram_len(self.in_spec)), 10)
-            except asyncio.TimeoutError:
-                logger.warning('Nothing incoming. Re-establishing connection.')
-                # TODO: Pass status=None to self.state.update() to signal Off?
-                await self.connect()
-                continue
-            except asyncio.IncompleteReadError as e:
-                logger.debug('incomplete read:')
-                dgram = e.partial
-            logger.debug(f'<<< {dgram!r}')
-            try:
-                status = AVR_Status.parse(
-                    avr_dgram.decode(dgram, self.in_spec))
-            except ValueError as e:
-                logger.warning(f'Discarding datagram: {e}')
-                # TODO: Pass status=None to self.state.update() to signal Off?
-            else:
-                logger.debug(f'received {status}')
-                new_state = self.state.update(status)
-                if new_state != self.state:
-                    logger.debug(f'state -> {new_state}')
-                    await state_queue.put(new_state)
-                    await state_queue.join()
-                    await self.control(new_state)
-            if self.reader.at_eof():
-                await state_queue.put(None)  # EOF
-                logger.info('finished')
-                break
-
-    async def send(self, command_queue=None):
-        """Write receiver commands from 'command_queue' to the serial port.
-
-        Use existing self.command_queue if none given, otherwise replace
-        self.command_queue with the one given.
-        """
+    async def _send(self):
+        """Write receiver commands from the to the serial port."""
+        assert self.command_queue is not None
         logger = self.logger.getChild('send')
-        if command_queue is not None:
-            self.command_queue = command_queue
         last_sent = 0.0
 
         while True:
@@ -160,8 +169,8 @@ class HarmanKardon_Surround_Receiver:
             else:
                 logger.info(f'sending {cmd!r}')
                 logger.debug(f'>>> {data!r}')
-                self.writer.write(data)
-                await self.writer.drain()
+                self.wstream.write(data)
+                await self.wstream.drain()
             self.command_queue.task_done()
             # throttle commands based on how long since last command
             t = now()
@@ -173,15 +182,24 @@ class HarmanKardon_Surround_Receiver:
                 await asyncio.sleep(0.3)
 
         logger.info('finished')
-        self.writer.close()
-        await self.writer.wait_closed()
+        self.wstream.close()
+        await self.wstream.wait_closed()
+
+    async def run(self, command_queue, state_queue):
+        try:
+            self.command_queue = command_queue
+            await asyncio.gather(
+                self._send(),
+                self._recv(state_queue),
+            )
+        finally:
+            self.command_queue = None
 
 
 async def main(serial_port):
     from cli import cli
 
-    surround = HarmanKardon_Surround_Receiver(serial_port)
-    await surround.connect()
+    surround = await HarmanKardon_Surround_Receiver.create(serial_port)
 
     commands = asyncio.Queue()
     states = asyncio.Queue()
@@ -203,8 +221,7 @@ async def main(serial_port):
 
     await asyncio.gather(
         cli('surround> ', commands),
-        surround.send(commands),
-        surround.recv(states),
+        surround.run(commands, states),
         print_states(states),
     )
 

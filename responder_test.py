@@ -21,8 +21,7 @@ hifictl = None
 @api.on_event('startup')
 async def startup_hifictl():
     global hifictl
-    surround = HarmanKardon_Surround_Receiver("/dev/ttyUSB1")
-    await surround.connect()
+    surround = await HarmanKardon_Surround_Receiver.create("/dev/ttyUSB1")
 
     async def collect_states(audio_states):
         global last_audio_state
@@ -36,8 +35,7 @@ async def startup_hifictl():
             audio_states.task_done()
 
     hifictl = asyncio.gather(
-        surround.send(audio_commands),
-        surround.recv(audio_states),
+        surround.run(audio_commands, audio_states),
         collect_states(audio_states),
     )
 
