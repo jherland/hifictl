@@ -92,7 +92,8 @@ class Fake_HK_AVR:
             elif cmd == 'MUTE':
                 self.state = 'default' if self.state == 'mute' else 'mute'
             elif cmd in {'VOL DOWN', 'VOL UP'}:
-                self.volume += 1 if cmd == 'VOL UP' else -1
+                if self.state == 'volume':
+                    self.volume += 1 if cmd == 'VOL UP' else -1
                 self.state = 'volume'
                 if self.volume_canceler is not None:
                     self.volume_canceler.cancel()
