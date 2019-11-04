@@ -4,7 +4,9 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 import pytest
+import sys
 
+sys.path.append(str(Path(__file__).parent.parent))
 from virtual_serial_port import virtual_serial_port
 from fake_surround_receiver_hk import Fake_HK_AVR
 from surround_receiver_hk import HarmanKardon_Surround_Receiver
@@ -14,7 +16,7 @@ from surround_receiver_hk import HarmanKardon_Surround_Receiver
 async def serial_port_to_fake_avr():
     host_tty = Path('./ttyTestHK')
     device_tty = Path('./ttyFakeHK')
-    with virtual_serial_port(host_tty, device_tty, True):
+    with virtual_serial_port(host_tty, device_tty, debug=True):
         fake_device = await Fake_HK_AVR.create(str(device_tty))
         device_task = asyncio.create_task(fake_device.run())
         try:
@@ -53,11 +55,11 @@ async def last_in_queue(q):
 
 async def receiver_state_after_commands(serial_port, commands):
     async with surround_receiver(serial_port) as (command_q, state_q):
-        last_state = asyncio.create_task(last_in_queue(state_q))
+        state_sink = asyncio.create_task(last_in_queue(state_q))
         for command in commands:
             await command_q.put(command)
 
-    return await last_state
+    return await state_sink
 
 
 pytestmark = pytest.mark.asyncio
@@ -91,7 +93,41 @@ async def test_sending_on_then_off_enters_standby():
     assert last_state.standby
 
 
+async def test_increase_volume_by_10():
+    async with serial_port_to_fake_avr() as serial_port:
+        async with surround_receiver(serial_port) as (command_q, state_q):
+            await command_q.put('on')
+
+            state = await state_q.get()
+            state_q.task_done()
+            while state.volume is None:
+                state = await state_q.get()
+                state_q.task_done()
+
+            target = state.volume + 10
+            state_sink = asyncio.create_task(last_in_queue(state_q))
+            for _ in range(10):
+                await command_q.put('vol+')
+
+        last_state = await state_sink
+
+    assert not last_state.off
+    assert not last_state.standby
+    assert last_state.volume == target
+
+
 if __name__ == '__main__':
+    import inspect
     import logging
+
     logging.basicConfig(level=logging.DEBUG)
-    asyncio.run(test_on())
+    test_funcs = {
+        name: obj
+        for name, obj in inspect.getmembers(sys.modules[__name__])
+        if inspect.isfunction(obj) and name.startswith('test_')}
+
+    for name, func in test_funcs.items():
+        if len(sys.argv) > 1 and not name.startswith(sys.argv[1]):
+            continue
+        print(f'*** Running {name}() ***')
+        asyncio.run(func())
