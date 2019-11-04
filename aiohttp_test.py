@@ -3,6 +3,7 @@
 import aiohttp
 from aiohttp import web
 import asyncio
+from functools import partial
 import logging
 
 from surround_receiver_hk import HarmanKardon_Surround_Receiver
@@ -43,10 +44,10 @@ async def forward_command(cmd):
         await audio_commands.put(rest)
 
 
-async def on_startup(app):
+async def on_startup(serial_port, app):
     global hifictl
     logger.info('starting up...')
-    surround = await HarmanKardon_Surround_Receiver.create('/dev/ttyUSB1')
+    surround = await HarmanKardon_Surround_Receiver.create(serial_port)
 
     hifictl = asyncio.gather(
         surround.run(audio_commands, audio_states),
@@ -85,22 +86,38 @@ async def websocket_handler(request):
     return ws
 
 
-def init():
+def init(serial_port):
     app = web.Application()
     app.add_routes([
         web.get('/', index),
         web.static('/static', 'http_static'),
         web.get('/ws', websocket_handler),
     ])
-    app.on_startup.append(on_startup)
+    app.on_startup.append(partial(on_startup, serial_port))
     app.on_cleanup.append(on_cleanup)
     return app
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    import argparse
 
-    app = init()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'serial_port', nargs='?', default='/dev/ttyUSB1', metavar='PATH',
+        help=f'Serial port for surround receiver')
+    parser.add_argument(
+        "--verbose", "-v", action="count", default=0,
+        help="Increase log level")
+    parser.add_argument(
+        "--quiet", "-q", action="count", default=0,
+        help="Decrease log level")
+
+    args = parser.parse_args()
+
+    loglevel = logging.WARNING + 10 * (args.quiet - args.verbose)
+    logging.basicConfig(level=loglevel)
+
+    app = init(args.serial_port)
 
     for resource in app.router.resources():
         print(resource)
